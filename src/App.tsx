@@ -9,7 +9,8 @@ import Toolbar from "@material-ui/core/Toolbar";
 import IconButton from "@material-ui/core/IconButton";
 import Typography from "@material-ui/core/Typography";
 import PlayIcon from "@material-ui/icons/PlayArrow";
-import MonacoEditor from "@monaco-editor/react";
+import MonacoEditor, { monaco } from "@monaco-editor/react";
+import MonacoEditorT from "monaco-editor";
 import * as prettier from "prettier/standalone";
 import parserBabel from "prettier/parser-babylon";
 import * as Babel from "@babel/standalone";
@@ -20,6 +21,43 @@ const theme = createMuiTheme({ palette: { type: "dark" } });
 
 const timeout = 1000;
 Babel.registerPlugin("loopProtection", protect(timeout));
+
+function formatCode(code: string) {
+  return prettier.format(code, {
+    parser: "babel",
+    plugins: [parserBabel]
+  });
+}
+const formatProvider: MonacoEditorT.languages.DocumentFormattingEditProvider = {
+  displayName: "Prettier",
+  provideDocumentFormattingEdits: (
+    model: MonacoEditorT.editor.ITextModel,
+    options: MonacoEditorT.languages.FormattingOptions,
+    token: MonacoEditorT.CancellationToken
+  ) => {
+    const code = model.getValue();
+    const formatted = formatCode(code);
+    const textEdit = [
+      {
+        range: {
+          startLineNumber: 1,
+          startColumn: 1,
+          endLineNumber: formatted.split("\n").length + 1,
+          endColumn: 999
+        },
+        text: formatted
+      }
+    ];
+
+    return textEdit;
+  }
+};
+monaco.init().then(monaco => {
+  monaco.languages.registerDocumentFormattingEditProvider(
+    "javascript",
+    formatProvider
+  );
+});
 
 const useStyles = makeStyles(theme => ({
   full: {
@@ -38,24 +76,40 @@ export default function App() {
 
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [editorValue, setEditorValue] = useState(initialCode);
-  const valueGetter = useRef<() => string>(() => "");
+  const valueGetterRef = useRef<() => string>(() => "");
+  const monacoRef = useRef<MonacoEditorT.editor.IStandaloneCodeEditor | null>(
+    null
+  );
 
-  function handleEditorDidMount(getter: () => string) {
+  function handleEditorDidMount(
+    getter: () => string,
+    monaco: MonacoEditorT.editor.IStandaloneCodeEditor
+  ) {
     setIsEditorReady(true);
-    valueGetter.current = getter;
+    valueGetterRef.current = getter;
+    monacoRef.current = monaco;
+
+    if (monaco) {
+      // monaco.languages.registerDocumentRangeFormattingEditProvider(
+      //   "javascript",
+      //   formatProvider
+      // );
+      // monaco.languages.registerOnTypeFormattingEditProvider(
+      //   "javascript",
+      //   formatProvider
+      // );
+    }
   }
 
   function handleFormatClick() {
-    const code = valueGetter.current();
-    const formatted = prettier.format(code, {
-      parser: "babel",
-      plugins: [parserBabel]
-    });
+    const code = valueGetterRef.current();
+    const formatted = formatCode(code);
+
     setEditorValue(formatted);
   }
 
   function handleRunClick() {
-    const code = valueGetter.current();
+    const code = valueGetterRef.current();
 
     const transform = (source: string) =>
       Babel.transform(source, {
