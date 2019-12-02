@@ -1,5 +1,18 @@
 html,
+body {
+  position: fixed;
+}
+
+html,
 body,
 #root {
+  width: 100%;
   height: 100%;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
 }
