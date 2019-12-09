@@ -3,22 +3,21 @@ import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
-import IconButton from "@material-ui/core/IconButton";
 import Typography from "@material-ui/core/Typography";
-import PlayIcon from "@material-ui/icons/PlayArrow";
+import { Canvas } from "react-three-fiber";
 import * as jsfeat from "jsfeat";
 
 import CodeEditor from "./CodeEditor";
 import { formatCode } from "./codeUtils";
 
 import "./globalStyles.css";
+import FullscreenQuad from "./FullscreenQuad";
 const theme = createMuiTheme({ palette: { type: "dark" } });
 
 function useWebcam() {
-  const [video, setVideo] = useState();
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -51,6 +50,9 @@ const useStyles = makeStyles(theme => ({
     flexGrow: 1,
     height: "100%"
   },
+  fullHeight: {
+    height: "100%"
+  },
   title: {
     flexGrow: 1
   }
@@ -58,9 +60,18 @@ const useStyles = makeStyles(theme => ({
 
 const functionName = "processFrame";
 const initialCode = formatCode(`function ${functionName}() { return 0; }`);
+type Handler = () => void;
 
 export default function App() {
   const classes = useStyles({});
+
+  const [currentHandler, setCurrentHandler] = useState<Handler>(() => {});
+
+  function handleRun(fn: Handler) {
+    setCurrentHandler(fn);
+  }
+
+  const webcam = useWebcam();
 
   return (
     <>
@@ -72,18 +83,20 @@ export default function App() {
             <Typography variant="h6" className={classes.title}>
               CvEducation
             </Typography>
-            {/* <Button onClick={handleFormatClick}>Format</Button>
-            <IconButton edge="start" color="inherit" onClick={handleRunClick}>
-              <PlayIcon />
-            </IconButton> */}
           </Toolbar>
         </AppBar>
         <Grid container className={classes.full}>
-          <Grid item xs={6}>
-            Output
+          <Grid item xs={6} className={classes.fullHeight}>
+            <Canvas>
+              <FullscreenQuad texture={} />
+            </Canvas>
           </Grid>
           <Grid item xs={6}>
-            <CodeEditor functionName={functionName} initialCode={initialCode} />
+            <CodeEditor
+              functionName={functionName}
+              initialCode={initialCode}
+              onRun={handleRun}
+            />
           </Grid>
         </Grid>
       </ThemeProvider>

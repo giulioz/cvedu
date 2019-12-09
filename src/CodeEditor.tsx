@@ -1,6 +1,9 @@
 import React, { useRef, useState } from "react";
 import MonacoEditor, { monaco } from "@monaco-editor/react";
 import MonacoEditorT from "monaco-editor";
+import { Toolbar, Button, IconButton } from "@material-ui/core";
+import { makeStyles } from "@material-ui/styles";
+import PlayIcon from "@material-ui/icons/PlayArrow";
 
 import { formatCode, transformExecTimeout } from "./codeUtils";
 
@@ -44,7 +47,26 @@ monaco.init().then(monaco => {
   // );
 });
 
-export default function CodeEditor({ functionName, initialCode }) {
+const useStyles = makeStyles(theme => ({
+  spacer: {
+    flexGrow: 1
+  },
+  full: {
+    height: "100%"
+  }
+}));
+
+export default function CodeEditor<THandler>({
+  functionName,
+  initialCode,
+  onRun
+}: {
+  functionName: string;
+  initialCode: string;
+  onRun: (fn: THandler) => void;
+}) {
+  const classes = useStyles({});
+
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [editorValue, setEditorValue] = useState(initialCode);
   const valueGetterRef = useRef<() => string>(() => "");
@@ -57,6 +79,7 @@ export default function CodeEditor({ functionName, initialCode }) {
   function handleFormatClick() {
     const code = valueGetterRef.current();
     const formatted = formatCode(code);
+    console.log(formatted);
 
     setEditorValue(formatted);
   }
@@ -66,21 +89,32 @@ export default function CodeEditor({ functionName, initialCode }) {
     const processed = transformExecTimeout(code);
     const tail = `;return ${functionName};`;
     const final = processed + tail;
-    console.log(final);
+    // console.log(final);
 
-    const F = new Function(final)();
-    const result = F();
-    alert(result);
+    const F = new Function(final)() as THandler;
+    onRun(F);
   }
 
   return (
-    <MonacoEditor
-      value={editorValue}
-      width="100%"
-      height="100%"
-      language="javascript"
-      theme="dark"
-      editorDidMount={handleEditorDidMount}
-    />
+    <>
+      <Toolbar variant="dense">
+        <div className={classes.spacer} />
+        <Button onClick={handleFormatClick}>Format</Button>
+        <IconButton edge="start" color="inherit" onClick={handleRunClick}>
+          <PlayIcon />
+        </IconButton>
+      </Toolbar>
+      <div className={classes.full}>
+        <MonacoEditor
+          value={editorValue}
+          width="100%"
+          height="100%"
+          language="javascript"
+          theme="dark"
+          options={{ minimap: { enabled: false } }}
+          editorDidMount={handleEditorDidMount}
+        />
+      </div>
+    </>
   );
 }
