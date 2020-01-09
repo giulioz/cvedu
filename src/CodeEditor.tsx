@@ -4,8 +4,10 @@ import MonacoEditorT from "monaco-editor";
 import { Toolbar, Button, IconButton } from "@material-ui/core";
 import { makeStyles } from "@material-ui/styles";
 import PlayIcon from "@material-ui/icons/PlayArrow";
+import UndoIcon from "@material-ui/icons/Undo";
+import RedoIcon from "@material-ui/icons/Redo";
 
-import { formatCode, transformExecTimeout } from "./codeUtils";
+import { formatCode } from "./codeUtils";
 
 const formatProvider: MonacoEditorT.languages.DocumentFormattingEditProvider = {
   displayName: "Prettier",
@@ -56,14 +58,12 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
-export default function CodeEditor<THandler>({
-  functionName,
+export default function CodeEditor({
   initialCode,
   onRun
 }: {
-  functionName: string;
   initialCode: string;
-  onRun: (fn: THandler) => void;
+  onRun: (code: string) => void;
 }) {
   const classes = useStyles({});
 
@@ -79,31 +79,40 @@ export default function CodeEditor<THandler>({
   function handleFormatClick() {
     const code = valueGetterRef.current();
     const formatted = formatCode(code);
-    console.log(formatted);
 
     setEditorValue(formatted);
   }
 
   function handleRunClick() {
     const code = valueGetterRef.current();
-    const processed = transformExecTimeout(code);
-    const tail = `;return ${functionName};`;
-    const final = processed + tail;
-    // console.log(final);
+    onRun(code);
+  }
 
-    const F = new Function(final)() as THandler;
-    onRun(F);
+  function handleUndoClick() {}
+  
+  function handleRedoClick() {}
+
+  function handleResetClick() {
+    setEditorValue(initialCode);
   }
 
   return (
     <>
       <Toolbar variant="dense">
         <div className={classes.spacer} />
+        <Button onClick={handleResetClick}>Reset</Button>
+        <IconButton edge="start" color="inherit" onClick={handleUndoClick}>
+          <UndoIcon />
+        </IconButton>
+        <IconButton edge="start" color="inherit" onClick={handleRedoClick}>
+          <RedoIcon />
+        </IconButton>
         <Button onClick={handleFormatClick}>Format</Button>
         <IconButton edge="start" color="inherit" onClick={handleRunClick}>
           <PlayIcon />
         </IconButton>
       </Toolbar>
+
       <div className={classes.full}>
         <MonacoEditor
           value={editorValue}
