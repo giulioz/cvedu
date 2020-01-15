@@ -81,6 +81,11 @@ export default function CodeEditor({
   ) {
     valueGetterRef.current = getter;
     monacoRef.current = editor;
+
+    editor
+      .getModel()
+      .updateOptions({ insertSpaces: true, indentSize: 2, tabSize: 2 });
+
     setIsEditorReady(true);
   }
 
