@@ -1,4 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+export function useAnimLoop(callback: (time: number) => void) {
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    function loop(time: number) {
+      callback(time);
+      animRef.current = requestAnimationFrame(loop);
+    }
+
+    animRef.current = requestAnimationFrame(loop);
+
+    return () => cancelAnimationFrame(animRef.current);
+  }, [callback]);
+}
 
 export function useWebcam() {
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
