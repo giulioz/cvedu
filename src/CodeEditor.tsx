@@ -60,10 +60,12 @@ const useStyles = makeStyles(theme => ({
 
 export default function CodeEditor({
   initialCode,
-  onRun
+  onRun,
+  onError
 }: {
   initialCode: string;
   onRun: (code: string) => void;
+  onError: (error: any) => void;
 }) {
   const classes = useStyles({});
 
@@ -84,8 +86,13 @@ export default function CodeEditor({
 
   function handleFormatClick() {
     const code = valueGetterRef.current();
-    const formatted = formatCode(code);
-    monacoRef.current.setValue(formatted);
+
+    try {
+      const formatted = formatCode(code);
+      monacoRef.current.setValue(formatted);
+    } catch (e) {
+      onError(e);
+    }
   }
 
   function handleRunClick() {

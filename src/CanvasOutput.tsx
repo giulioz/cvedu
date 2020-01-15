@@ -3,7 +3,13 @@ import * as jsfeat from "jsfeat";
 
 import { useWebcam, useAnimLoop } from "./videoUtils";
 
-export default function CanvasOutput({ handler }: { handler: any }) {
+export default function CanvasOutput({
+  handler,
+  onError
+}: {
+  handler: any;
+  onError: (error: any) => void;
+}) {
   const { video, handleStart } = useWebcam();
   const canvasRef = useRef<HTMLCanvasElement>();
 
@@ -38,6 +44,7 @@ export default function CanvasOutput({ handler }: { handler: any }) {
           jsfeat.imgproc
         );
       } catch (e) {
+        onError(e);
         console.error(e);
       }
 

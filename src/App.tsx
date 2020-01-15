@@ -6,6 +6,9 @@ import Grid from "@material-ui/core/Grid";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
+import Snackbar from "@material-ui/core/Snackbar";
+import Alert from "@material-ui/lab/Alert";
+import AlertTitle from "@material-ui/lab/AlertTitle";
 import * as jsfeat from "jsfeat";
 
 import CodeEditor from "./CodeEditor";
@@ -49,9 +52,21 @@ export default function App() {
     getFunctionFromCode<Handler>(initialCode)
   );
   function handleRun(code: string) {
-    const F = getFunctionFromCode<Handler>(code);
-    // WARNING: we are dealing with functions, this messes with React state setters
-    setHandler(() => F);
+    try {
+      const F = getFunctionFromCode<Handler>(code);
+      // WARNING: we are dealing with functions, this messes with React state setters
+      setHandler(() => F);
+    } catch (e) {
+      setCurrentError(String(e));
+    }
+  }
+
+  const [currentError, setCurrentError] = useState(null);
+  function handleError(error: any) {
+    setCurrentError(String(error));
+  }
+  function handleCloseError() {
+    setCurrentError(null);
   }
 
   return (
@@ -68,12 +83,27 @@ export default function App() {
         </AppBar>
         <Grid container className={classes.full}>
           <Grid item xs={6} className={classes.fullHeight}>
-            <CanvasOutput handler={handler} />
+            <CanvasOutput handler={handler} onError={handleError} />
           </Grid>
           <Grid item xs={6}>
-            <CodeEditor initialCode={initialCode} onRun={handleRun} />
+            <CodeEditor
+              initialCode={initialCode}
+              onRun={handleRun}
+              onError={handleError}
+            />
           </Grid>
         </Grid>
+
+        <Snackbar
+          open={Boolean(currentError)}
+          autoHideDuration={6000}
+          onClose={handleCloseError}
+        >
+          <Alert severity="error" elevation={6} variant="filled">
+            {/* <AlertTitle>Syntax Error:</AlertTitle> */}
+            <pre>{currentError}</pre>
+          </Alert>
+        </Snackbar>
       </ThemeProvider>
     </>
   );

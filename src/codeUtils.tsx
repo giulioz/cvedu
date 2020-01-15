@@ -47,6 +47,8 @@ export function getFunctionFromCode<THandler>(code: string) {
   const tail = `;return ${functionName};`;
   const final = processed + tail;
 
+  console.log(final);
+
   const F = new Function(final)() as THandler;
   return F;
 }
