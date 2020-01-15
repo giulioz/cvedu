@@ -49,6 +49,7 @@ export function getFunctionFromCode<THandler>(code: string) {
 
   console.log(final);
 
+  /* eslint-disable-next-line no-new-func */
   const F = new Function(final)() as THandler;
   return F;
 }
