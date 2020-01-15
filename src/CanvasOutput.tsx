@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useCallback } from "react";
 import * as jsfeat from "jsfeat";
 
 import { useWebcam, useAnimLoop } from "./videoUtils";
@@ -15,7 +15,7 @@ export default function CanvasOutput({
 
   const matRef = useRef(null);
 
-  useAnimLoop(() => {
+  const animLoop = useCallback(() => {
     const canvas = canvasRef.current;
 
     if (!video || !canvas) return;
@@ -59,7 +59,9 @@ export default function CanvasOutput({
 
       context.putImageData(imageData, 0, 0);
     }
-  });
+  }, [video, handler]);
+  
+  useAnimLoop(animLoop);
 
   return <canvas ref={canvasRef} />;
 }
