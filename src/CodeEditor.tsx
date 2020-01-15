@@ -68,19 +68,24 @@ export default function CodeEditor({
   const classes = useStyles({});
 
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [editorValue, setEditorValue] = useState(initialCode);
   const valueGetterRef = useRef<() => string>(() => "");
+  const monacoRef = useRef<MonacoEditorT.editor.IStandaloneCodeEditor | null>(
+    null
+  );
 
-  function handleEditorDidMount(getter: () => string) {
-    setIsEditorReady(true);
+  function handleEditorDidMount(
+    getter: () => string,
+    editor: MonacoEditorT.editor.IStandaloneCodeEditor
+  ) {
     valueGetterRef.current = getter;
+    monacoRef.current = editor;
+    setIsEditorReady(true);
   }
 
   function handleFormatClick() {
     const code = valueGetterRef.current();
     const formatted = formatCode(code);
-
-    setEditorValue(formatted);
+    monacoRef.current.setValue(formatted);
   }
 
   function handleRunClick() {
@@ -89,11 +94,11 @@ export default function CodeEditor({
   }
 
   function handleUndoClick() {}
-  
+
   function handleRedoClick() {}
 
   function handleResetClick() {
-    setEditorValue(initialCode);
+    monacoRef.current.setValue(initialCode);
   }
 
   return (
@@ -101,21 +106,21 @@ export default function CodeEditor({
       <Toolbar variant="dense">
         <div className={classes.spacer} />
         <Button onClick={handleResetClick}>Reset</Button>
-        <IconButton edge="start" color="inherit" onClick={handleUndoClick}>
+        <IconButton color="inherit" onClick={handleUndoClick}>
           <UndoIcon />
         </IconButton>
-        <IconButton edge="start" color="inherit" onClick={handleRedoClick}>
+        <IconButton color="inherit" onClick={handleRedoClick}>
           <RedoIcon />
         </IconButton>
         <Button onClick={handleFormatClick}>Format</Button>
-        <IconButton edge="start" color="inherit" onClick={handleRunClick}>
+        <IconButton color="inherit" onClick={handleRunClick}>
           <PlayIcon />
         </IconButton>
       </Toolbar>
 
       <div className={classes.full}>
         <MonacoEditor
-          value={editorValue}
+          value={initialCode}
           width="100%"
           height="100%"
           language="javascript"
