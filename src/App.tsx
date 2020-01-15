@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useLayoutEffect, useState } from "react";
+import React, { useState } from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -9,7 +9,6 @@ import Typography from "@material-ui/core/Typography";
 import Snackbar from "@material-ui/core/Snackbar";
 import Alert from "@material-ui/lab/Alert";
 import AlertTitle from "@material-ui/lab/AlertTitle";
-import * as jsfeat from "jsfeat";
 
 import CodeEditor from "./CodeEditor";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
@@ -32,18 +31,9 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const initialCode = formatCode(`
-function processFrame(data,width,height,img_u8,imgproc) {
-  imgproc.grayscale(data, width, height, img_u8);
-  imgproc.gaussian_blur(img_u8, img_u8, 4, 0);
-  imgproc.canny(img_u8, img_u8, 40, 80);
+function processFrame(data,width,height) {
 }`);
-type Handler = (
-  data: any,
-  width: number,
-  height: number,
-  img_u8: any,
-  imgproc: typeof jsfeat.imgproc
-) => void;
+type Handler = (data: any, width: number, height: number) => void;
 
 export default function App() {
   const classes = useStyles({});
@@ -100,7 +90,7 @@ export default function App() {
           onClose={handleCloseError}
         >
           <Alert severity="error" elevation={6} variant="filled">
-            {/* <AlertTitle>Syntax Error:</AlertTitle> */}
+            <AlertTitle>Error:</AlertTitle>
             <pre>{currentError}</pre>
           </Alert>
         </Snackbar>
