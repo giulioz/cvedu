@@ -7,9 +7,10 @@ export const executionTimeout = 1000;
 Babel.registerPlugin("loopProtection", protect(executionTimeout));
 
 export function transformExecTimeout(source: string) {
-  return Babel.transform(source, {
-    plugins: ["loopProtection"]
-  }).code;
+  // return Babel.transform(source, {
+  //   plugins: ["loopProtection"]
+  // }).code;
+  return source;
 }
 
 export function formatCode(code: string) {
