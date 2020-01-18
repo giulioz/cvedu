@@ -13,8 +13,9 @@ import AlertTitle from "@material-ui/lab/AlertTitle";
 import CodeEditor from "./CodeEditor";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
 
-import "./globalStyles.css";
 import CanvasOutput from "./CanvasOutput";
+
+import "./globalStyles.css";
 const theme = createMuiTheme({ palette: { type: "dark" } });
 
 const useStyles = makeStyles(theme => ({
@@ -30,10 +31,12 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
-const initialCode = formatCode(`
-function processFrame(data,width,height) {
-}`);
-type Handler = (data: any, width: number, height: number) => void;
+const initialCode = formatCode(`function process(data,width,height) {}`);
+type Handler = (
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+) => Uint8ClampedArray | void;
 
 export default function App() {
   const classes = useStyles({});
@@ -42,6 +45,8 @@ export default function App() {
     getFunctionFromCode<Handler>(initialCode)
   );
   function handleRun(code: string) {
+    setCurrentError("");
+
     try {
       const F = getFunctionFromCode<Handler>(code);
       // WARNING: we are dealing with functions, this messes with React state setters
@@ -53,7 +58,12 @@ export default function App() {
 
   const [currentError, setCurrentError] = useState(null);
   function handleError(error: any) {
-    setCurrentError(String(error));
+    console.log(error === currentError, error, currentError);
+    if (String(error) !== currentError) {
+      setCurrentError(String(error));
+    }
+
+    setHandler(() => () => {});
   }
   function handleCloseError() {
     setCurrentError(null);
@@ -89,7 +99,12 @@ export default function App() {
           autoHideDuration={6000}
           onClose={handleCloseError}
         >
-          <Alert severity="error" elevation={6} variant="filled">
+          <Alert
+            severity="error"
+            elevation={6}
+            variant="filled"
+            onClose={handleCloseError}
+          >
             <AlertTitle>Error:</AlertTitle>
             <pre>{currentError}</pre>
           </Alert>

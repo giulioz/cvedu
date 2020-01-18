@@ -2,11 +2,11 @@ import React, { useRef, useCallback } from "react";
 
 import { useWebcam, useAnimLoop } from "./videoUtils";
 
-export default function CanvasOutput({
+export default function CanvasOutput<T extends CallableFunction>({
   handler,
   onError
 }: {
-  handler: any;
+  handler: T;
   onError: (error: any) => void;
 }) {
   const { video } = useWebcam();
@@ -23,12 +23,16 @@ export default function CanvasOutput({
       canvas.height = video.videoHeight;
 
       context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
       try {
-        handler(imageData.data, canvas.width, canvas.height);
+        const tmp = handler(imageData.data, imageData.width, imageData.height);
+
+        if (tmp) {
+          imageData.data.set(tmp);
+        }
       } catch (e) {
-        onError(e);
+        onError(e.stack);
         console.error(e);
       }
 
