@@ -33,20 +33,29 @@ const formatProvider: MonacoEditorT.languages.DocumentFormattingEditProvider = {
     return textEdit;
   }
 };
+
+const hoverProvider: MonacoEditorT.languages.HoverProvider = {
+  provideHover: (
+    model: MonacoEditorT.editor.ITextModel,
+    position: MonacoEditorT.Position,
+    token: MonacoEditorT.CancellationToken
+  ) => {
+    return {
+      contents: [
+        {
+          value: String(Math.random())
+        }
+      ]
+    };
+  }
+};
+
 monaco.init().then(monaco => {
   monaco.languages.registerDocumentFormattingEditProvider(
     "javascript",
     formatProvider
   );
-
-  // monaco.languages.registerDocumentRangeFormattingEditProvider(
-  //   "javascript",
-  //   formatProvider
-  // );
-  // monaco.languages.registerOnTypeFormattingEditProvider(
-  //   "javascript",
-  //   formatProvider
-  // );
+  monaco.languages.registerHoverProvider("javascript", hoverProvider);
 });
 
 const useStyles = makeStyles(theme => ({

@@ -16,7 +16,10 @@ import { formatCode, getFunctionFromCode } from "./codeUtils";
 import CanvasOutput from "./CanvasOutput";
 
 import "./globalStyles.css";
-const theme = createMuiTheme({ palette: { type: "dark" } });
+const theme = createMuiTheme({
+  palette: { type: "dark" },
+  overrides: { MuiAppBar: { root: { zIndex: null } } }
+});
 
 const useStyles = makeStyles(theme => ({
   full: {
