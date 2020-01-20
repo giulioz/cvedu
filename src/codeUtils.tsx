@@ -2,6 +2,7 @@ import * as prettier from "prettier/standalone";
 import parserBabel from "prettier/parser-babylon";
 import * as Babel from "@babel/standalone";
 import preset_env from "@babel/preset-env";
+import preset_typescript from "@babel/preset-typescript";
 import protect from "./babel-plugin-transform-prevent-infinite-loops";
 
 function instrumenter({ types, template }) {
@@ -13,38 +14,40 @@ function instrumenter({ types, template }) {
     visitor: {
       // VariableDeclaration({ node, scope }) {
       //   console.log(node, scope);
-
       //   const logger = buildLogger({ NAME: node.declarations[0].id.name });
       //   console.log(logger);
       //   scope.parent.push(logger);
-
       //   // console.log(node.id.name);
       // }
-      BlockStatement({ node, scope }) {
-        console.log(node, scope);
-        Object.keys(scope.bindings).forEach(binding => {
-          const logger = buildLogger({ NAME: binding });
-          node.body.push(logger);
-        });
-      }
+      // BlockStatement({ node, scope }) {
+      //   console.log(node, scope);
+      //   Object.keys(scope.bindings).forEach(binding => {
+      //     const logger = buildLogger({ NAME: binding });
+      //     node.body.push(logger);
+      //   });
+      // }
     }
   };
 }
 Babel.registerPlugin("instrumenter", instrumenter);
 
 Babel.registerPreset("@babel/preset-env", preset_env);
+Babel.registerPreset("@babel/preset-typescript", preset_typescript);
 
 const MAX_ITERATIONS = 500001;
 Babel.registerPlugin("loopProtection", protect(MAX_ITERATIONS));
 
 export function transformCode(source: string) {
   const instrumented = Babel.transform(source, {
+    filename: "file.ts",
+    presets: ["@babel/preset-typescript"],
     plugins: ["instrumenter"]
   }).code;
 
   return Babel.transform(instrumented, {
     plugins: ["loopProtection"],
-    presets: ["@babel/preset-env"]
+    presets: ["@babel/preset-env"],
+    filename: "file.ts"
   }).code;
 }
 

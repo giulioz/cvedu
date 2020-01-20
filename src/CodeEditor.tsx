@@ -60,10 +60,10 @@ const hoverProvider: MonacoEditorT.languages.HoverProvider = {
 
 monaco.init().then(monaco => {
   monaco.languages.registerDocumentFormattingEditProvider(
-    "javascript",
+    "typescript",
     formatProvider
   );
-  monaco.languages.registerHoverProvider("javascript", hoverProvider);
+  monaco.languages.registerHoverProvider("typescript", hoverProvider);
 });
 
 const useStyles = makeStyles(theme => ({
@@ -152,7 +152,7 @@ export default function CodeEditor({
           value={initialCode}
           width="100%"
           height="100%"
-          language="javascript"
+          language="typescript"
           theme="dark"
           options={{ minimap: { enabled: false } }}
           editorDidMount={handleEditorDidMount}
