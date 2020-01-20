@@ -59,7 +59,11 @@ export function formatCode(code: string) {
 }
 
 export function findFunctionName(code: string) {
-  const toks = code.split(" ").filter(tok => tok.length > 1);
+  const toks = code
+    .replace(/(\r\n|\n|\r)/gm, " ")
+    .split(" ")
+    .filter(tok => tok.length > 1);
+  console.log(toks);
   const fnTokI = toks.findIndex(tok => tok === "function");
   if (fnTokI === -1) return null;
   const fnNameToClean = toks[fnTokI + 1];
