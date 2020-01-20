@@ -2,7 +2,7 @@ function process(data, width, height) {
   const yuvImage = imageToYUV(data);
   const mask = chromaKey(yuvImage);
   const hough = houghTransform(yuvImage, mask, width, 0.1, 4.0, 400.0);
-  console.log(hough);
+  // console.log(hough);
 
   // return yuvImage;
   maskToImage(mask, data);

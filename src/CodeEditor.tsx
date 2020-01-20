@@ -40,13 +40,21 @@ const hoverProvider: MonacoEditorT.languages.HoverProvider = {
     position: MonacoEditorT.Position,
     token: MonacoEditorT.CancellationToken
   ) => {
-    return {
-      contents: [
-        {
-          value: String(Math.random())
-        }
-      ]
-    };
+    const bns = (window as any).bindings;
+    const bName = model.getWordAtPosition(position);
+
+    if (bName && bns && bns[bName.word] !== undefined) {
+      let value = JSON.stringify(bns[bName.word]);
+      if (value.length > 50) {
+        value = value.substring(0, 50) + "...";
+      }
+
+      return {
+        contents: [{ value }]
+      };
+    } else {
+      return null;
+    }
   }
 };
 

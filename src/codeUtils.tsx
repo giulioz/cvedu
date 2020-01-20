@@ -1,16 +1,51 @@
 import * as prettier from "prettier/standalone";
 import parserBabel from "prettier/parser-babylon";
 import * as Babel from "@babel/standalone";
-import * as protect from "loop-protect";
+import preset_env from "@babel/preset-env";
+import protect from "./babel-plugin-transform-prevent-infinite-loops";
 
-export const executionTimeout = 1000;
-Babel.registerPlugin("loopProtection", protect(executionTimeout));
+function instrumenter({ types, template }) {
+  const buildLogger = template(`
+    updateBinding("NAME", NAME);
+  `);
 
-export function transformExecTimeout(source: string) {
-  // return Babel.transform(source, {
-  //   plugins: ["loopProtection"]
-  // }).code;
-  return source;
+  return {
+    visitor: {
+      // VariableDeclaration({ node, scope }) {
+      //   console.log(node, scope);
+
+      //   const logger = buildLogger({ NAME: node.declarations[0].id.name });
+      //   console.log(logger);
+      //   scope.parent.push(logger);
+
+      //   // console.log(node.id.name);
+      // }
+      BlockStatement({ node, scope }) {
+        console.log(node, scope);
+        Object.keys(scope.bindings).forEach(binding => {
+          const logger = buildLogger({ NAME: binding });
+          node.body.push(logger);
+        });
+      }
+    }
+  };
+}
+Babel.registerPlugin("instrumenter", instrumenter);
+
+Babel.registerPreset("@babel/preset-env", preset_env);
+
+const MAX_ITERATIONS = 500001;
+Babel.registerPlugin("loopProtection", protect(MAX_ITERATIONS));
+
+export function transformCode(source: string) {
+  const instrumented = Babel.transform(source, {
+    plugins: ["instrumenter"]
+  }).code;
+
+  return Babel.transform(instrumented, {
+    plugins: ["loopProtection"],
+    presets: ["@babel/preset-env"]
+  }).code;
 }
 
 export function formatCode(code: string) {
@@ -41,13 +76,20 @@ export function buildGlobalsBinding(globals) {
   return lets + setter;
 }
 
+const head = `
+window.bindings = {};
+function updateBinding(name, value) {
+  window.bindings[name] = value;
+}`;
+
 export function getFunctionFromCode<THandler>(code: string) {
+  const processed = transformCode(code);
+
   const functionName = findFunctionName(code);
   if (!functionName) return null;
-  const processed = transformExecTimeout(code);
   const tail = `;return ${functionName};`;
-  const final = processed + tail;
 
+  const final = head + processed + tail;
   console.log(final);
 
   /* eslint-disable-next-line no-new-func */

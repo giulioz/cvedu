@@ -34,7 +34,12 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
-const initialCode = formatCode(`function process(data,width,height) {}`);
+const initialCode = formatCode(`
+function process(data, width, height) {
+  while (false) {
+    let test = 0;
+  }
+}`);
 type Handler = (
   data: Uint8ClampedArray,
   width: number,
@@ -61,7 +66,6 @@ export default function App() {
 
   const [currentError, setCurrentError] = useState(null);
   function handleError(error: any) {
-    console.log(error === currentError, error, currentError);
     if (String(error) !== currentError) {
       setCurrentError(String(error));
     }
