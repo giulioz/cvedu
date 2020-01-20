@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useLayoutEffect } from "react";
 import MonacoEditor, { monaco } from "@monaco-editor/react";
 import MonacoEditorT from "monaco-editor";
 import { Toolbar, Button, IconButton } from "@material-ui/core";
@@ -11,11 +11,7 @@ import { formatCode } from "./codeUtils";
 
 const formatProvider: MonacoEditorT.languages.DocumentFormattingEditProvider = {
   displayName: "Prettier",
-  provideDocumentFormattingEdits: (
-    model: MonacoEditorT.editor.ITextModel,
-    options: MonacoEditorT.languages.FormattingOptions,
-    token: MonacoEditorT.CancellationToken
-  ) => {
+  provideDocumentFormattingEdits(model, options, token) {
     const code = model.getValue();
     const formatted = formatCode(code);
     const textEdit = [
@@ -34,12 +30,8 @@ const formatProvider: MonacoEditorT.languages.DocumentFormattingEditProvider = {
   }
 };
 
-const hoverProvider: MonacoEditorT.languages.HoverProvider = {
-  provideHover: (
-    model: MonacoEditorT.editor.ITextModel,
-    position: MonacoEditorT.Position,
-    token: MonacoEditorT.CancellationToken
-  ) => {
+const bindingHoverProvider: MonacoEditorT.languages.HoverProvider = {
+  provideHover(model, position, token) {
     const bns = (window as any).bindings;
     const bName = model.getWordAtPosition(position);
 
@@ -57,14 +49,6 @@ const hoverProvider: MonacoEditorT.languages.HoverProvider = {
     }
   }
 };
-
-monaco.init().then(monaco => {
-  monaco.languages.registerDocumentFormattingEditProvider(
-    "typescript",
-    formatProvider
-  );
-  monaco.languages.registerHoverProvider("typescript", hoverProvider);
-});
 
 const useStyles = makeStyles(theme => ({
   spacer: {
@@ -92,6 +76,22 @@ export default function CodeEditor({
     null
   );
 
+  const globalMonacoRef = useRef<typeof MonacoEditorT | null>(null);
+  useLayoutEffect(() => {
+    monaco.init().then(monaco => {
+      monaco.languages.registerDocumentFormattingEditProvider(
+        "typescript",
+        formatProvider
+      );
+      monaco.languages.registerHoverProvider(
+        "typescript",
+        bindingHoverProvider
+      );
+
+      globalMonacoRef.current = monaco;
+    });
+  }, []);
+
   function handleEditorDidMount(
     getter: () => string,
     editor: MonacoEditorT.editor.IStandaloneCodeEditor
@@ -102,6 +102,33 @@ export default function CodeEditor({
     editor
       .getModel()
       .updateOptions({ insertSpaces: true, indentSize: 2, tabSize: 2 });
+
+    const saveBinding = editor.addCommand(
+      globalMonacoRef.current.KeyMod.CtrlCmd |
+        globalMonacoRef.current.KeyCode.KEY_S,
+      handleRunClick
+    );
+
+    const testLensProvider: MonacoEditorT.languages.CodeLensProvider = {
+      provideCodeLenses(model, token) {
+        return {
+          lenses: [
+            {
+              range: model.getFullModelRange(),
+              command: {
+                id: saveBinding,
+                title: "save"
+              }
+            }
+          ],
+          dispose() {}
+        };
+      }
+    };
+    globalMonacoRef.current.languages.registerCodeLensProvider(
+      "typescript",
+      testLensProvider
+    );
 
     setIsEditorReady(true);
   }
