@@ -18,7 +18,7 @@ export default function CanvasOutput<T extends CallableFunction>({
   const animLoop = useCallback(() => {
     const canvas = canvasRef.current;
 
-    if (!video || !canvas) return () => {};
+    if (!video || !canvas || !handler) return () => {};
     const context = canvas.getContext("2d");
 
     return () => {

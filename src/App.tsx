@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -32,18 +32,23 @@ const useStyles = makeStyles(theme => ({
   firstContainer: {
     height: "100%",
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
+    alignItems: "center"
   },
   canvas: {
-    flex: 1
+    maxWidth: "100%",
+    maxHeight: "70%"
   },
   logOutput: {
     flex: 1,
+    width: "100%",
     overflow: "scroll"
   }
 }));
 
 const initialCode = formatCode(`
+let i = 0;
+
 function process(data: Uint8ClampedArray, width: number, height: number) {
   for (let i = 0; i < data.length; i += 4) {
     const rnd = Math.random() * 255;
@@ -51,6 +56,9 @@ function process(data: Uint8ClampedArray, width: number, height: number) {
     data[i + 2] = data[i + 1] * 0.5 + rnd * 0.5;
     data[i + 3] = 255;
   }
+
+  log(i);
+  i++;
 }`);
 
 type Handler = (
@@ -61,6 +69,13 @@ type Handler = (
 
 export default function App() {
   const classes = useStyles({});
+
+  const [log, setLog] = useState([]);
+  useEffect(() => {
+    (window as any).log = (value: any) => {
+      setLog(l => [value, ...l].slice(0, 100));
+    };
+  }, [setLog]);
 
   const [handler, setHandler] = useState<Handler>(() =>
     getFunctionFromCode<Handler>(initialCode)
@@ -89,25 +104,18 @@ export default function App() {
     setCurrentError(null);
   }
 
-  const [log, setLog] = useState([]);
-  useLayoutEffect(() => {
-    (window as any).log = (value: any) => {
-      setLog(l => [value, ...l].slice(0, 100));
-    };
-  }, [setLog]);
-
   return (
     <>
       <ThemeProvider theme={theme}>
         <CssBaseline />
 
-        <AppBar position="static">
+        {/* <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" className={classes.title}>
               CvEducation
             </Typography>
           </Toolbar>
-        </AppBar>
+        </AppBar> */}
         <Grid container className={classes.full}>
           <Grid item xs={6} className={classes.firstContainer}>
             <CanvasOutput
