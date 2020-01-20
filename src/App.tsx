@@ -34,7 +34,16 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
-const initialCode = formatCode(`function process(data: Uint8ClampedArray, width: number, height: number) {}`);
+const initialCode = formatCode(`
+function process(data: Uint8ClampedArray, width: number, height: number) {
+  for (let i = 0; i < data.length; i += 4) {
+    const rnd = Math.random() * 255;
+    data[i + 1] = data[i] * 0.5 + rnd * 0.5;
+    data[i + 2] = data[i + 1] * 0.5 + rnd * 0.5;
+    data[i + 3] = 255;
+  }
+}`);
+
 type Handler = (
   data: Uint8ClampedArray,
   width: number,
