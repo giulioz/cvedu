@@ -1,18 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 
-export function useAnimLoop(callback: (time: number) => void) {
+export function useAnimLoop(callbackBuild: () => (time: number) => void) {
   const animRef = useRef(null);
 
   useEffect(() => {
+    const fn = callbackBuild();
+
     function loop(time: number) {
-      callback(time);
+      fn(time);
       animRef.current = requestAnimationFrame(loop);
     }
 
     animRef.current = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(animRef.current);
-  }, [callback]);
+  }, [callbackBuild]);
 }
 
 export function useWebcam() {

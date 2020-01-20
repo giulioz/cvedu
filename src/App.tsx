@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -26,11 +26,20 @@ const useStyles = makeStyles(theme => ({
     flexGrow: 1,
     height: "100%"
   },
-  fullHeight: {
-    height: "100%"
-  },
   title: {
     flexGrow: 1
+  },
+  firstContainer: {
+    height: "100%",
+    display: "flex",
+    flexDirection: "column"
+  },
+  canvas: {
+    flex: 1
+  },
+  logOutput: {
+    flex: 1,
+    overflow: "scroll"
   }
 }));
 
@@ -80,6 +89,13 @@ export default function App() {
     setCurrentError(null);
   }
 
+  const [log, setLog] = useState([]);
+  useLayoutEffect(() => {
+    (window as any).log = (value: any) => {
+      setLog(l => [value, ...l].slice(0, 100));
+    };
+  }, [setLog]);
+
   return (
     <>
       <ThemeProvider theme={theme}>
@@ -93,8 +109,15 @@ export default function App() {
           </Toolbar>
         </AppBar>
         <Grid container className={classes.full}>
-          <Grid item xs={6} className={classes.fullHeight}>
-            <CanvasOutput handler={handler} onError={handleError} />
+          <Grid item xs={6} className={classes.firstContainer}>
+            <CanvasOutput
+              className={classes.canvas}
+              handler={handler}
+              onError={handleError}
+            />
+            <div className={classes.logOutput}>
+              <pre>{log.join("\n")}</pre>
+            </div>
           </Grid>
           <Grid item xs={6}>
             <CodeEditor
