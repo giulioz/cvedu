@@ -1,14 +1,16 @@
-function process(data, width, height) {
+function process(data: Uint8ClampedArray, width: number, height: number) {
   const yuvImage = imageToYUV(data);
   const mask = chromaKey(yuvImage);
   const hough = houghTransform(yuvImage, mask, width, 0.1, 4.0, 400.0);
   // console.log(hough);
+  // log(JSON.stringify(hough));
+  log(hough.a_deg);
 
   // return yuvImage;
   maskToImage(mask, data);
 }
 
-function imageToYUV(data) {
+function imageToYUV(data: Uint8ClampedArray) {
   // Crea una copia dei pixel
   const newData = data.slice();
 
@@ -34,12 +36,12 @@ function imageToYUV(data) {
 }
 
 // Parametri per chromaKey
-const pU = 136;
-const pV = 173;
+const pU = 130;
+const pV = 162;
 const radius = 5;
 
-function chromaKey(data) {
-  const mask = new Array(data.length / 4);
+function chromaKey(data: Uint8ClampedArray) {
+  const mask = new Array<boolean>(data.length / 4);
 
   for (let i = 0; i < data.length; i += 4) {
     // Estraggo i valori di U e V per quel pixel
@@ -63,16 +65,23 @@ function chromaKey(data) {
   return mask;
 }
 
-function maskToImage(mask, target) {
+function maskToImage(mask: boolean[], target: Uint8ClampedArray) {
   for (let i = 0; i < mask.length; i++) {
-    target[i * 4 + 0] = mask[i] * 255;
-    target[i * 4 + 1] = mask[i] * 255;
-    target[i * 4 + 2] = mask[i] * 255;
+    target[i * 4 + 0] = Number(mask[i]) * 255;
+    target[i * 4 + 1] = Number(mask[i]) * 255;
+    target[i * 4 + 2] = Number(mask[i]) * 255;
     target[i * 4 + 3] = 255;
   }
 }
 
-function houghTransform(data, mask, width, a_step, r_step, max_r) {
+function houghTransform(
+  data: Uint8ClampedArray,
+  mask: boolean[],
+  width: number,
+  a_step: number,
+  r_step: number,
+  max_r: number
+) {
   // Accumulatore
   const alpha_steps = Math.round(Math.PI / a_step) + 1;
   const r_steps = Math.round((max_r * 2.0) / r_step) + 1;

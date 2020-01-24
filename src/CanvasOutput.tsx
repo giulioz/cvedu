@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, Props } from "react";
+import React, { useRef, useCallback } from "react";
 
 import { useWebcam, useAnimLoop } from "./videoUtils";
 

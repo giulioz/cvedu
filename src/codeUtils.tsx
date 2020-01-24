@@ -20,7 +20,6 @@ function instrumenter({ types, template }) {
       //   // console.log(node.id.name);
       // }
       // BlockStatement({ node, scope }) {
-      //   console.log(node, scope);
       //   Object.keys(scope.bindings).forEach(binding => {
       //     const logger = buildLogger({ NAME: binding });
       //     node.body.push(logger);
@@ -63,7 +62,6 @@ export function findFunctionName(code: string) {
     .replace(/(\r\n|\n|\r)/gm, " ")
     .split(" ")
     .filter(tok => tok.length > 1);
-  console.log(toks);
   const fnTokI = toks.findIndex(tok => tok === "function");
   if (fnTokI === -1) return null;
   const fnNameToClean = toks[fnTokI + 1];

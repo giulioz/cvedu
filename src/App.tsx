@@ -12,7 +12,7 @@ import AlertTitle from "@material-ui/lab/AlertTitle";
 
 import CodeEditor from "./CodeEditor";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
-
+import BlockEditor from "./BlockEditor";
 import CanvasOutput from "./CanvasOutput";
 
 import "./globalStyles.css";
@@ -47,7 +47,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const initialCode = formatCode(`
-let i = 0;
+// let i = 0;
 
 function process(data: Uint8ClampedArray, width: number, height: number) {
   for (let i = 0; i < data.length; i += 4) {
@@ -57,8 +57,8 @@ function process(data: Uint8ClampedArray, width: number, height: number) {
     data[i + 3] = 255;
   }
 
-  log(i);
-  i++;
+  // log(i);
+  // i++;
 }`);
 
 type Handler = (
@@ -116,25 +116,29 @@ export default function App() {
             </Typography>
           </Toolbar>
         </AppBar> */}
-        <Grid container className={classes.full}>
-          <Grid item xs={6} className={classes.firstContainer}>
-            <CanvasOutput
-              className={classes.canvas}
-              handler={handler}
-              onError={handleError}
-            />
-            <div className={classes.logOutput}>
-              <pre>{log.join("\n")}</pre>
-            </div>
+        {false && (
+          <Grid container className={classes.full}>
+            <Grid item xs={6} className={classes.firstContainer}>
+              <CanvasOutput
+                className={classes.canvas}
+                handler={handler}
+                onError={handleError}
+              />
+              <div className={classes.logOutput}>
+                <pre>{log.join("\n")}</pre>
+              </div>
+            </Grid>
+            <Grid item xs={6}>
+              <CodeEditor
+                initialCode={initialCode}
+                onRun={handleRun}
+                onError={handleError}
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={6}>
-            <CodeEditor
-              initialCode={initialCode}
-              onRun={handleRun}
-              onError={handleError}
-            />
-          </Grid>
-        </Grid>
+        )}
+
+        <BlockEditor />
 
         <Snackbar
           open={Boolean(currentError)}
