@@ -1,24 +1,55 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useLayoutEffect } from "react";
 import { useSpring, animated, config as springConfig } from "react-spring";
 import { useDrag } from "react-use-gesture";
+import { Theme, Button, IconButton } from "@material-ui/core";
 import { makeStyles } from "@material-ui/styles";
+import AddIcon from "@material-ui/icons/Add";
+import CloseIcon from "@material-ui/icons/Close";
 
-const useStyles = makeStyles(theme => ({
-  drawer: {
-    border: "1px solid rgba(255, 255, 255, 0.12)",
-    width: 180,
+import { uuidv4 } from "./utils";
+
+export type IOPort = { label: string; uuid: string };
+export type BlockTemplate = {
+  type: string;
+  hardcoded: boolean;
+  code: string;
+  inputs: IOPort[];
+  outputs: IOPort[];
+};
+
+const drawerSize = 25;
+
+const useStyles = makeStyles((theme: Theme) => ({
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
     height: "100%",
+  },
+  drawer: {
+    borderRight: "1px solid rgba(255, 255, 255, 0.12)",
+    width: theme.spacing(drawerSize),
+    flexGrow: 1,
     display: "flex",
     justifyContent: "flex-start",
     alignItems: "center",
     flexDirection: "column",
+  },
+  drawerScroll: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-start",
+
     overflow: "scroll",
+    flexGrow: 1,
+    flexBasis: 0,
     // transform: "translate(-17.5%, -17.5%) scale(0.65)",
     "& $block": {
       position: "static",
       transform: "translate(0, 0)",
-      margin: 16
-    }
+      margin: theme.spacing(2),
+    },
   },
   block: {
     whiteSpace: "nowrap",
@@ -31,40 +62,35 @@ const useStyles = makeStyles(theme => ({
     boxShadow: `0px 2px 1px -1px rgba(0, 0, 0, 0.2),
       0px 1px 1px 0px rgba(0, 0, 0, 0.14),
       0px 1px 3px 0px rgba(0, 0, 0, 0.12)`,
-    userSelect: "none"
+    userSelect: "none",
+  },
+  selected: {
+    border: "2px solid rgba(255, 0, 0, 0.32)",
   },
   topbar: {
     fontWeight: 600,
     fontSize: 16,
-    margin: 8,
-    display: "flex"
+    margin: theme.spacing(1),
+    display: "flex",
   },
   title: {
     flexGrow: 1,
-    marginRight: 32
-  },
-  deleteButton: {
-    fontWeight: 300
+    marginRight: theme.spacing(2),
   },
   io: {
     borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-    padding: 2
+    padding: 2,
   },
   output: {
-    textAlign: "right"
+    textAlign: "right",
   },
   svglink: {
-    position: "absolute"
-  }
+    position: "absolute",
+  },
+  addButton: {
+    margin: theme.spacing(1),
+  },
 }));
-
-function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 const IOPort = React.forwardRef<typeof HTMLDivElement, any>(
   ({ type = "input", label, uuid, ...rest }, ref) => {
@@ -98,7 +124,7 @@ function BlockTemplate({
   onMoveStart = () => {},
   onMoveEnd = () => {},
   inputs = [],
-  outputs = []
+  outputs = [],
 }: any) {
   const classes = useStyles({});
 
@@ -127,7 +153,7 @@ function getIOPortPos(element: HTMLElement, right: boolean) {
   const rect = element.getBoundingClientRect();
   return {
     x: right ? rect.right : rect.x,
-    y: rect.y + rect.height / 2
+    y: rect.y + rect.height / 2,
   };
 }
 
@@ -135,6 +161,8 @@ function Block({
   x,
   y,
   type,
+  selected = false,
+  onSelect = () => {},
   onMove = () => {},
   onDelete = () => {},
   onDragIO = () => {},
@@ -142,7 +170,7 @@ function Block({
   onDragIOEnd = () => {},
   onRest = () => {},
   inputs = [],
-  outputs = []
+  outputs = [],
 }: any) {
   const classes = useStyles({});
 
@@ -150,18 +178,25 @@ function Block({
     px: x || 0,
     py: y || 0,
     config: springConfig.stiff,
-    onRest
+    onRest,
   });
 
   const divRef = useRef<HTMLDivElement>();
-  const bind = useDrag(({ delta: [px, py] }) => {
-    if (divRef.current && (x === undefined || y === undefined)) {
-      const rect = divRef.current.getBoundingClientRect();
-      x = rect.x + rect.width / 2;
-      y = rect.y;
-    }
+  const firstTimeRef = useRef<number>();
+  const bind = useDrag(({ delta: [px, py], time, first, last }) => {
+    if (first) firstTimeRef.current = time;
 
-    onMove({ x: px + x, y: py + y });
+    if (time - firstTimeRef.current < 100) {
+      if (last) onSelect();
+    } else {
+      if (divRef.current && (x === undefined || y === undefined)) {
+        const rect = divRef.current.getBoundingClientRect();
+        x = rect.x + rect.width / 2;
+        y = rect.y;
+      }
+
+      onMove({ x: px + x, y: py + y });
+    }
   });
 
   const ioRefs = useRef<{ [key: string]: HTMLElement }>({});
@@ -188,17 +223,17 @@ function Block({
     <animated.div
       {...bind()}
       ref={divRef}
-      className={classes.block}
+      className={classes.block + (selected ? " " + classes.selected : "")}
       style={{
         left: px,
-        top: py
+        top: py,
       }}
     >
       <div className={classes.topbar}>
         <div className={classes.title}>{type}</div>
-        <div className={classes.deleteButton} onClick={onDelete}>
-          x
-        </div>
+        <IconButton onClick={onDelete} size="small">
+          <CloseIcon />
+        </IconButton>
       </div>
       {inputs.map(input => (
         <IOPort
@@ -229,7 +264,7 @@ function Link({
   by = 0,
   strokeWidth = 3,
   markerWidth = 2,
-  markerHeight = 4
+  markerHeight = 4,
 }) {
   const classes = useStyles({});
 
@@ -240,11 +275,11 @@ function Link({
 
   const src = {
     x: ax - x + strokeWidth / 2 - markerWidth,
-    y: ay - y + strokeWidth / 2 + markerHeight
+    y: ay - y + strokeWidth / 2 + markerHeight,
   };
   const dst = {
     x: bx - x + strokeWidth / 2 - markerWidth,
-    y: by - y + strokeWidth / 2 + markerHeight
+    y: by - y + strokeWidth / 2 + markerHeight,
   };
 
   const link = `M${src.x},${src.y}C${(src.x + dst.x) / 2},${src.y} ${(src.x +
@@ -256,7 +291,7 @@ function Link({
       className={classes.svglink}
       style={{
         left: x,
-        top: y - markerHeight
+        top: y - markerHeight,
       }}
       width={width + strokeWidth + markerWidth * 2}
       height={height + strokeWidth + markerHeight * 2}
@@ -284,66 +319,22 @@ function Link({
   );
 }
 
-const templates = [
-  {
-    type: "Camera Input",
-    inputs: [],
-    outputs: [{ label: "Frame", uuid: uuidv4() }]
-  },
-  {
-    type: "Chroma Key",
-    inputs: [
-      { label: "Color", uuid: uuidv4() },
-      { label: "Radius", uuid: uuidv4() },
-      { label: "Frame", uuid: uuidv4() }
-    ],
-    outputs: [{ label: "Mask", uuid: uuidv4() }]
-  },
-  {
-    type: "Hough Transf",
-    inputs: [{ label: "Mask", uuid: uuidv4() }],
-    outputs: [
-      { label: "Angle", uuid: uuidv4() },
-      { label: "Distance", uuid: uuidv4() }
-    ]
-  },
-  {
-    type: "RANSAC",
-    inputs: [{ label: "Mask", uuid: uuidv4() }],
-    outputs: [
-      { label: "Angle", uuid: uuidv4() },
-      { label: "Distance", uuid: uuidv4() }
-    ]
-  },
-  {
-    type: "Display Frame",
-    inputs: [{ label: "Frame", uuid: uuidv4() }],
-    outputs: []
-  },
-  {
-    type: "Draw Line",
-    inputs: [
-      { label: "Frame", uuid: uuidv4() },
-      { label: "Angle", uuid: uuidv4() },
-      { label: "Distance", uuid: uuidv4() }
-    ],
-    outputs: [{ label: "Frame", uuid: uuidv4() }]
-  },
-  {
-    type: "RGB to YUV",
-    inputs: [{ label: "Frame", uuid: uuidv4() }],
-    outputs: [{ label: "Frame", uuid: uuidv4() }]
-  }
-];
-
-export default function BlockEditor() {
+export default function BlockEditor({
+  templates,
+  blocks,
+  setBlocks,
+  links,
+  setLinks,
+  getUuid = uuidv4,
+  onAdd = () => {},
+  selectedBlock = null,
+  onSelectBlock = () => {},
+}: any) {
   const classes = useStyles({});
-
-  const [blocks, setBlocks] = useState([]);
 
   const [draggingTemplate, setDraggingTemplate] = useState(null);
   const handleMoveTemplateStart = type => pos => {
-    const uuid = uuidv4();
+    const uuid = getUuid();
     const template = templates.find(t => t.type === type);
 
     setBlocks(blocks => [
@@ -354,13 +345,13 @@ export default function BlockEditor() {
         uuid,
         inputs: template.inputs.map(e => ({
           ...e,
-          uuid: uuid + " " + e.uuid
+          uuid: uuid + " " + e.uuid,
         })),
         outputs: template.outputs.map(e => ({
           ...e,
-          uuid: uuid + " " + e.uuid
-        }))
-      }
+          uuid: uuid + " " + e.uuid,
+        })),
+      },
     ]);
 
     setDraggingTemplate(uuid);
@@ -372,18 +363,22 @@ export default function BlockEditor() {
   }
   const handleMoveTemplateEnd = () => setDraggingTemplate(null);
 
-  const handleMoveBlock = uuid => pos =>
+  const handleMoveBlock = uuid => pos => {
     setBlocks(blocks =>
       blocks.map(block => (block.uuid === uuid ? { ...block, ...pos } : block))
     );
-  const handleDeleteBlock = uuid => () =>
+  };
+  const handleSelectBlock = uuid => () => {
+    onSelectBlock(selected => (selected === uuid ? null : uuid));
+  };
+  const handleDeleteBlock = uuid => () => {
     setBlocks(blocks => blocks.filter(block => block.uuid !== uuid));
+  };
 
-  const [links, setLinks] = useState([]);
   function handleDragIOStart(uuidStart, { x, y }) {
     setLinks(links => [
       { uuidStart, uuidEnd: "tba", ax: x, ay: y, bx: x, by: y },
-      ...links.filter(l => l.uuidStart !== uuidStart)
+      ...links.filter(l => l.uuidStart !== uuidStart),
     ]);
   }
   function handleDragIO(uuidStart, { x, y }) {
@@ -400,14 +395,6 @@ export default function BlockEditor() {
   const linksWithPosGen = () =>
     links.map(link => {
       if (link.uuidEnd !== "tba") {
-        // const startBlock = blocks.filter(
-        //   b =>
-        //     b.outputs.filter(i => i.uuid === link.uuidStart).length > 0,
-        // )[0];
-        // const endBlock = blocks.filter(
-        //   b => b.inputs.filter(i => i.uuid === link.uuidEnd).length > 0,
-        // )[0];
-
         const elStart = document.getElementById("block-port-" + link.uuidStart);
         const elEnd = document.getElementById("block-port-" + link.uuidEnd);
 
@@ -420,7 +407,7 @@ export default function BlockEditor() {
             ax: posStart.x,
             ay: posStart.y,
             bx: posEnd.x,
-            by: posEnd.y
+            by: posEnd.y,
           };
         }
 
@@ -448,27 +435,40 @@ export default function BlockEditor() {
   }
 
   return (
-    <>
+    <div className={classes.root}>
       {linksWithPos.map(link => (
         <Link {...link} key={link.uuidStart + "-link-" + link.uuidEnd} />
       ))}
 
       <div className={classes.drawer}>
-        {templates.map(block => (
-          <BlockTemplate
-            {...block}
-            key={block.type}
-            onMove={handleMoveTemplate}
-            onMoveStart={handleMoveTemplateStart(block.type)}
-            onMoveEnd={handleMoveTemplateEnd}
-          />
-        ))}
+        <div className={classes.drawerScroll}>
+          {templates.map(block => (
+            <BlockTemplate
+              {...block}
+              key={block.type}
+              onMove={handleMoveTemplate}
+              onMoveStart={handleMoveTemplateStart(block.type)}
+              onMoveEnd={handleMoveTemplateEnd}
+            />
+          ))}
+        </div>
+
+        <Button
+          color="primary"
+          variant="contained"
+          onClick={onAdd}
+          className={classes.addButton}
+        >
+          <AddIcon />
+        </Button>
       </div>
 
       {blocks.map(block => (
         <Block
           {...block}
           key={block.uuid}
+          selected={selectedBlock === block.uuid}
+          onSelect={handleSelectBlock(block.uuid)}
           onMove={handleMoveBlock(block.uuid)}
           onDelete={handleDeleteBlock(block.uuid)}
           onDragIOStart={handleDragIOStart}
@@ -477,6 +477,6 @@ export default function BlockEditor() {
           onRest={updateLinkPos}
         />
       ))}
-    </>
+    </div>
   );
 }

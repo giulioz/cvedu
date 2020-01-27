@@ -20,14 +20,14 @@ const formatProvider: MonacoEditorT.languages.DocumentFormattingEditProvider = {
           startLineNumber: 1,
           startColumn: 1,
           endLineNumber: formatted.split("\n").length + 1,
-          endColumn: 999
+          endColumn: 999,
         },
-        text: formatted
-      }
+        text: formatted,
+      },
     ];
 
     return textEdit;
-  }
+  },
 };
 
 const bindingHoverProvider: MonacoEditorT.languages.HoverProvider = {
@@ -42,27 +42,30 @@ const bindingHoverProvider: MonacoEditorT.languages.HoverProvider = {
       }
 
       return {
-        contents: [{ value }]
+        contents: [{ value }],
       };
     } else {
       return null;
     }
-  }
+  },
 };
 
 const useStyles = makeStyles(theme => ({
-  spacer: {
-    flexGrow: 1
+  root: {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
   },
-  full: {
-    height: "100%"
-  }
+  spacer: {
+    flexGrow: 1,
+  },
 }));
 
 export default function CodeEditor({
   initialCode,
   onRun,
-  onError
+  onError,
 }: {
   initialCode: string;
   onRun: (code: string) => void;
@@ -117,13 +120,13 @@ export default function CodeEditor({
               range: model.getFullModelRange(),
               command: {
                 id: saveBinding,
-                title: "save"
-              }
-            }
+                title: "save",
+              },
+            },
           ],
-          dispose() {}
+          dispose() {},
         };
-      }
+      },
     };
     globalMonacoRef.current.languages.registerCodeLensProvider(
       "typescript",
@@ -158,8 +161,8 @@ export default function CodeEditor({
   }
 
   return (
-    <>
-      <Toolbar variant="dense">
+    <div className={classes.root}>
+      {/* <Toolbar variant="dense">
         <div className={classes.spacer} />
         <Button onClick={handleResetClick}>Reset</Button>
         <IconButton color="inherit" onClick={handleUndoClick}>
@@ -172,9 +175,9 @@ export default function CodeEditor({
         <IconButton color="inherit" onClick={handleRunClick}>
           <PlayIcon />
         </IconButton>
-      </Toolbar>
+      </Toolbar> */}
 
-      <div className={classes.full}>
+      <div className={classes.spacer}>
         <MonacoEditor
           value={initialCode}
           width="100%"
@@ -185,6 +188,6 @@ export default function CodeEditor({
           editorDidMount={handleEditorDidMount}
         />
       </div>
-    </>
+    </div>
   );
 }

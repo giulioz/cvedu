@@ -2,48 +2,80 @@ import React, { useState, useEffect } from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import Grid from "@material-ui/core/Grid";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
 import Snackbar from "@material-ui/core/Snackbar";
 import Alert from "@material-ui/lab/Alert";
 import AlertTitle from "@material-ui/lab/AlertTitle";
+import {
+  Dialog,
+  DialogActions,
+  TextField,
+  DialogContent,
+  DialogTitle,
+  Button,
+} from "@material-ui/core";
 
 import CodeEditor from "./CodeEditor";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
-import BlockEditor from "./BlockEditor";
+import BlockEditor, { BlockTemplate } from "./BlockEditor";
 import CanvasOutput from "./CanvasOutput";
 
 import "./globalStyles.css";
 const theme = createMuiTheme({
   palette: { type: "dark" },
-  overrides: { MuiAppBar: { root: { zIndex: null } } }
+  overrides: { MuiAppBar: { root: { zIndex: null } } },
 });
 
 const useStyles = makeStyles(theme => ({
   full: {
     flexGrow: 1,
-    height: "100%"
+    height: "100%",
   },
   title: {
-    flexGrow: 1
+    flexGrow: 1,
   },
   firstContainer: {
     height: "100%",
     display: "flex",
     flexDirection: "column",
-    alignItems: "center"
+    alignItems: "center",
   },
   canvas: {
     maxWidth: "100%",
-    maxHeight: "70%"
+    maxHeight: "100%",
   },
   logOutput: {
     flex: 1,
     width: "100%",
-    overflow: "scroll"
-  }
+    overflow: "scroll",
+  },
+
+  containerVert: {
+    width: "100%",
+    height: "100%",
+  },
+  containerHoriz: {
+    borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+    width: "100%",
+    height: "50%",
+    display: "flex",
+    flexDirection: "row",
+    // flex: 1,
+    // flexBasis: 0,
+  },
+  containerHorizHalf: {
+    flex: 1,
+    flexBasis: 0,
+  },
+  containerHorizHalfCanvas: {
+    flex: 1,
+    flexBasis: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
 }));
 
 const initialCode = formatCode(`
@@ -67,15 +99,75 @@ type Handler = (
   height: number
 ) => Uint8ClampedArray | void;
 
+const templates: BlockTemplate[] = [
+  {
+    type: "Camera Input",
+    hardcoded: true,
+    code: "test1",
+    inputs: [],
+    outputs: [{ label: "Frame" }],
+  },
+  {
+    type: "Chroma Key",
+    hardcoded: false,
+    code: "test2",
+    inputs: [
+      { label: "Frame" },
+      { label: "U" },
+      { label: "V" },
+      { label: "Radius" },
+    ],
+    outputs: [{ label: "Mask" }],
+  },
+  {
+    type: "Hough Transf",
+    hardcoded: false,
+    code: "",
+    inputs: [{ label: "Mask" }],
+    outputs: [{ label: "Angle" }, { label: "Distance" }],
+  },
+  {
+    type: "RANSAC",
+    hardcoded: false,
+    code: "",
+    inputs: [{ label: "Mask" }],
+    outputs: [{ label: "Angle" }, { label: "Distance" }],
+  },
+  {
+    type: "Display Frame",
+    hardcoded: true,
+    code: "",
+    inputs: [{ label: "Frame" }],
+    outputs: [],
+  },
+  {
+    type: "Draw Line",
+    hardcoded: false,
+    code: "",
+    inputs: [{ label: "Frame" }, { label: "Angle" }, { label: "Distance" }],
+    outputs: [{ label: "Frame" }],
+  },
+  {
+    type: "RGB to YUV",
+    hardcoded: false,
+    code: "",
+    inputs: [{ label: "Frame" }],
+    outputs: [{ label: "Frame" }],
+  },
+].map(template => ({
+  ...template,
+  inputs: template.inputs.map(i => ({
+    ...i,
+    uuid: `${template.type}-${i.label}-input`,
+  })),
+  outputs: template.outputs.map(i => ({
+    ...i,
+    uuid: `${template.type}-${i.label}-output`,
+  })),
+}));
+
 export default function App() {
   const classes = useStyles({});
-
-  const [log, setLog] = useState([]);
-  useEffect(() => {
-    (window as any).log = (value: any) => {
-      setLog(l => [value, ...l].slice(0, 100));
-    };
-  }, [setLog]);
 
   const [handler, setHandler] = useState<Handler>(() =>
     getFunctionFromCode<Handler>(initialCode)
@@ -104,41 +196,67 @@ export default function App() {
     setCurrentError(null);
   }
 
+  const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
+  const [buildingBlockName, setBuildingBlockName] = useState("");
+  function handleAdd() {
+    setBuildingBlockName("");
+    setAddBlockDialogOpen(true);
+  }
+  function handleCloseAddBlockDialog() {
+    setAddBlockDialogOpen(false);
+  }
+
+  const [blocks, setBlocks] = useState([]);
+  const [links, setLinks] = useState([]);
+
+  const [selectedBlockID, setSelectedBlockID] = useState(null);
+  const selectedBlock = blocks.find(b => b.uuid === selectedBlockID);
+  const code = selectedBlock ? selectedBlock.code : "";
+
   return (
     <>
       <ThemeProvider theme={theme}>
         <CssBaseline />
 
-        {/* <AppBar position="static">
-          <Toolbar>
+        <AppBar position="static">
+          <Toolbar variant="dense">
             <Typography variant="h6" className={classes.title}>
-              CvEducation
+              Block Editor
             </Typography>
           </Toolbar>
-        </AppBar> */}
-        {false && (
-          <Grid container className={classes.full}>
-            <Grid item xs={6} className={classes.firstContainer}>
+        </AppBar>
+
+        <div className={classes.containerVert}>
+          <div className={classes.containerHoriz}>
+            <div className={classes.containerHorizHalfCanvas}>
               <CanvasOutput
-                className={classes.canvas}
                 handler={handler}
                 onError={handleError}
+                title="Output for test"
               />
-              <div className={classes.logOutput}>
-                <pre>{log.join("\n")}</pre>
-              </div>
-            </Grid>
-            <Grid item xs={6}>
+            </div>
+            <div className={classes.containerHorizHalf}>
               <CodeEditor
-                initialCode={initialCode}
+                // initialCode={initialCode}
+                initialCode={code}
                 onRun={handleRun}
                 onError={handleError}
               />
-            </Grid>
-          </Grid>
-        )}
-
-        <BlockEditor />
+            </div>
+          </div>
+          <div className={classes.containerHoriz}>
+            <BlockEditor
+              blocks={blocks}
+              setBlocks={setBlocks}
+              links={links}
+              setLinks={setLinks}
+              templates={templates}
+              onAdd={handleAdd}
+              selectedBlock={selectedBlockID}
+              onSelectBlock={setSelectedBlockID}
+            />
+          </div>
+        </div>
 
         <Snackbar
           open={Boolean(currentError)}
@@ -155,6 +273,30 @@ export default function App() {
             <pre>{currentError}</pre>
           </Alert>
         </Snackbar>
+
+        <Dialog open={addBlockDialogOpen} onClose={handleCloseAddBlockDialog}>
+          <DialogTitle>Add a new Block</DialogTitle>
+          <DialogContent>
+            <TextField
+              value={buildingBlockName}
+              onChange={e => setBuildingBlockName(e.target.value)}
+              label="Name"
+              margin="dense"
+              variant="outlined"
+              autoFocus
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={handleCloseAddBlockDialog}
+              variant="contained"
+              color="primary"
+            >
+              Add
+            </Button>
+          </DialogActions>
+        </Dialog>
       </ThemeProvider>
     </>
   );
