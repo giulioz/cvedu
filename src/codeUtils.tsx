@@ -25,7 +25,7 @@ function instrumenter({ types, template }) {
       //     node.body.push(logger);
       //   });
       // }
-    }
+    },
   };
 }
 Babel.registerPlugin("instrumenter", instrumenter);
@@ -40,20 +40,20 @@ export function transformCode(source: string) {
   const instrumented = Babel.transform(source, {
     filename: "file.ts",
     presets: ["@babel/preset-typescript"],
-    plugins: ["instrumenter"]
+    plugins: ["instrumenter"],
   }).code;
 
   return Babel.transform(instrumented, {
     plugins: ["loopProtection"],
     presets: ["@babel/preset-env"],
-    filename: "file.ts"
+    filename: "file.ts",
   }).code;
 }
 
 export function formatCode(code: string) {
   return prettier.format(code, {
     parser: "babel",
-    plugins: [parserBabel]
+    plugins: [parserBabel],
   });
 }
 
