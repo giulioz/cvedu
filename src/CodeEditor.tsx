@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect } from "react";
+import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 import MonacoEditor, { monaco } from "@monaco-editor/react";
 import MonacoEditorT from "monaco-editor";
 import { Toolbar, Button, IconButton } from "@material-ui/core";
@@ -95,6 +95,11 @@ export default function CodeEditor({
     });
   }, []);
 
+  const onRunRef = useRef<(code: string) => void | null>(null);
+  useEffect(() => {
+    onRunRef.current = onRun;
+  }, [onRun]);
+
   function handleEditorDidMount(
     getter: () => string,
     editor: MonacoEditorT.editor.IStandaloneCodeEditor
@@ -149,7 +154,7 @@ export default function CodeEditor({
 
   function handleRunClick() {
     const code = valueGetterRef.current();
-    onRun(code);
+    onRunRef.current(code);
   }
 
   function handleUndoClick() {}

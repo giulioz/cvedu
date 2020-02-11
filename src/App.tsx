@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -78,79 +78,46 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const initialCode = formatCode(`
-// let i = 0;
-
-function process(data: Uint8ClampedArray, width: number, height: number) {
-  for (let i = 0; i < data.length; i += 4) {
-    const rnd = Math.random() * 255;
-    data[i + 1] = data[i] * 0.5 + rnd * 0.5;
-    data[i + 2] = data[i + 1] * 0.5 + rnd * 0.5;
-    data[i + 3] = 255;
-  }
-
-  // log(i);
-  // i++;
-}`);
-
-type Handler = (
-  data: Uint8ClampedArray,
-  width: number,
-  height: number
-) => Uint8ClampedArray | void;
-
-const templates: BlockTemplate[] = [
+const templatesInitial: BlockTemplate[] = [
   {
-    type: "Camera Input",
+    type: "CameraInput",
     hardcoded: true,
-    code: "test1",
+    code: "",
     inputs: [],
     outputs: [{ label: "Frame" }],
   },
   {
-    type: "Chroma Key",
-    hardcoded: false,
-    code: "test2",
-    inputs: [
-      { label: "Frame" },
-      { label: "U" },
-      { label: "V" },
-      { label: "Radius" },
-    ],
-    outputs: [{ label: "Mask" }],
-  },
-  {
-    type: "Hough Transf",
-    hardcoded: false,
-    code: "",
-    inputs: [{ label: "Mask" }],
-    outputs: [{ label: "Angle" }, { label: "Distance" }],
-  },
-  {
-    type: "RANSAC",
-    hardcoded: false,
-    code: "",
-    inputs: [{ label: "Mask" }],
-    outputs: [{ label: "Angle" }, { label: "Distance" }],
-  },
-  {
-    type: "Display Frame",
+    type: "DisplayFrame",
     hardcoded: true,
     code: "",
     inputs: [{ label: "Frame" }],
     outputs: [],
   },
   {
-    type: "Draw Line",
+    type: "Process",
     hardcoded: false,
-    code: "",
-    inputs: [{ label: "Frame" }, { label: "Angle" }, { label: "Distance" }],
-    outputs: [{ label: "Frame" }],
-  },
-  {
-    type: "RGB to YUV",
-    hardcoded: false,
-    code: "",
+    code: `function Process({ Frame }: { Frame: ImageData }) {
+      // Per ogni pixel...
+      for (let i = 0; i < Frame.data.length; i += 4) {
+        // Estrae i valori di RGB
+        const R = Frame.data[i];
+        const G = Frame.data[i + 1];
+        const B = Frame.data[i + 2];
+    
+        // Calcola i valori di YUV applicando una moltiplicazione matriciale
+        const Y = 0.257 * R + 0.504 * G + 0.098 * B + 16;
+        const U = -0.148 * R - 0.291 * G + 0.439 * B + 128;
+        const V = 0.439 * R - 0.368 * G - 0.071 * B + 128;
+    
+        // Salva i valori di YUV sulla copia dell'immagine
+        Frame.data[i] = Y;
+        Frame.data[i + 1] = U;
+        Frame.data[i + 2] = V;
+      }
+    
+      return { Frame };
+    }
+    `,
     inputs: [{ label: "Frame" }],
     outputs: [{ label: "Frame" }],
   },
@@ -169,32 +136,19 @@ const templates: BlockTemplate[] = [
 export default function App() {
   const classes = useStyles({});
 
-  const [handler, setHandler] = useState<Handler>(() =>
-    getFunctionFromCode<Handler>(initialCode)
-  );
-  function handleRun(code: string) {
-    setCurrentError("");
-
-    try {
-      const F = getFunctionFromCode<Handler>(code);
-      // WARNING: we are dealing with functions, this messes with React state setters
-      setHandler(() => F);
-    } catch (e) {
-      setCurrentError(String(e));
-    }
-  }
-
   const [currentError, setCurrentError] = useState(null);
   function handleError(error: any) {
     if (String(error) !== currentError) {
       setCurrentError(String(error));
     }
 
-    setHandler(() => () => {});
+    // setHandler(() => () => {});
   }
   function handleCloseError() {
     setCurrentError(null);
   }
+
+  const [templates, setTemplates] = useState(templatesInitial);
 
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
   const [buildingBlockName, setBuildingBlockName] = useState("");
@@ -203,6 +157,18 @@ export default function App() {
     setAddBlockDialogOpen(true);
   }
   function handleCloseAddBlockDialog() {
+    setTemplates(t => [
+      ...t,
+      {
+        type: buildingBlockName,
+        hardcoded: false,
+        code: `function ${buildingBlockName}(input) {}`,
+        inputs: [{ label: "Input", uuid: `${buildingBlockName}-Input-input` }],
+        outputs: [
+          { label: "Output", uuid: `${buildingBlockName}-Output-output` },
+        ],
+      },
+    ]);
     setAddBlockDialogOpen(false);
   }
 
@@ -212,6 +178,61 @@ export default function App() {
   const [selectedBlockID, setSelectedBlockID] = useState(null);
   const selectedBlock = blocks.find(b => b.uuid === selectedBlockID);
   const code = selectedBlock ? selectedBlock.code : "";
+
+  function handleRun(code: string) {
+    setBlocks(blocks =>
+      blocks.map(b => {
+        if (b.uuid === selectedBlockID) {
+          const fn = getFunctionFromCode(code);
+
+          return { ...b, code, fn };
+        } else {
+          return b;
+        }
+      })
+    );
+  }
+
+  function handleFrame(imgData: ImageData) {
+    const endNode = blocks.find(b => b.type === "DisplayFrame");
+
+    function recurse(node) {
+      if (!node || (!node.hardcoded && !node.fn)) return null;
+
+      const inLinks = links.filter(l => l.uuidEnd.startsWith(node.uuid + "-"));
+      const inBlocks = inLinks.map(l =>
+        blocks.find(b => b.uuid === l.uuidStart.split("-")[0])
+      );
+
+      const resultsChild = inBlocks.map(b => ({
+        uuid: b.uuid,
+        params: recurse(b),
+      }));
+
+      if (node.type === "DisplayFrame") {
+        const onlyResult = resultsChild[0];
+        if (onlyResult && onlyResult.params.Frame) {
+          return onlyResult.params.Frame;
+        } else {
+          return null;
+        }
+      } else if (node.type === "CameraInput") {
+        return { Frame: imgData };
+      } else {
+        const params = {};
+        inLinks.forEach(({ uuidStart, uuidEnd }) => {
+          const [srcUuid, srcBlockType, srcInputName] = uuidStart.split("-");
+          const [destUuid, destBlockType, destInputName] = uuidEnd.split("-");
+          params[destInputName] = resultsChild.find(
+            c => c.uuid === srcUuid
+          ).params[srcInputName];
+        });
+        return node.fn(params);
+      }
+    }
+
+    return recurse(endNode);
+  }
 
   return (
     <>
@@ -230,16 +251,17 @@ export default function App() {
           <div className={classes.containerHoriz}>
             <div className={classes.containerHorizHalfCanvas}>
               <CanvasOutput
-                handler={handler}
+                handler={handleFrame}
                 onError={handleError}
-                title="Output for test"
+                title="Output"
               />
             </div>
             <div className={classes.containerHorizHalf}>
               <CodeEditor
-                // initialCode={initialCode}
                 initialCode={code}
                 onRun={handleRun}
+                // initialCode={initialCode}
+                // onRun={handleRun}
                 onError={handleError}
               />
             </div>

@@ -32,12 +32,12 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-export default function CanvasOutput<T extends CallableFunction>({
+export default function CanvasOutput({
   handler,
   onError,
   title,
 }: {
-  handler: T;
+  handler(data: ImageData): Uint8ClampedArray | void;
   onError: (error: any) => void;
   title: string;
 }) {
@@ -80,11 +80,7 @@ export default function CanvasOutput<T extends CallableFunction>({
         const imageData = pausedFrame;
 
         try {
-          const tmp = handler(
-            imageData.data,
-            imageData.width,
-            imageData.height
-          );
+          const tmp = handler(imageData);
 
           if (tmp) {
             imageData.data.set(tmp);
@@ -111,11 +107,7 @@ export default function CanvasOutput<T extends CallableFunction>({
         );
 
         try {
-          const tmp = handler(
-            imageData.data,
-            imageData.width,
-            imageData.height
-          );
+          const tmp = handler(imageData);
 
           if (tmp) {
             imageData.data.set(tmp);

@@ -374,11 +374,11 @@ export default function BlockEditor({
         uuid,
         inputs: template.inputs.map(e => ({
           ...e,
-          uuid: uuid + " " + e.uuid,
+          uuid: uuid + "-" + e.uuid,
         })),
         outputs: template.outputs.map(e => ({
           ...e,
-          uuid: uuid + " " + e.uuid,
+          uuid: uuid + "-" + e.uuid,
         })),
       },
     ]);
