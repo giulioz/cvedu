@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useSpring, animated, config as springConfig } from "react-spring";
 import { useDrag } from "react-use-gesture";
 import { Theme, Button, IconButton } from "@material-ui/core";
@@ -92,46 +92,51 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-const IOPort = React.forwardRef<typeof HTMLDivElement, any>(
-  ({ type = "input", label, uuid, ...rest }, ref) => {
-    const classes = useStyles({});
+const IOPort = React.forwardRef<
+  typeof HTMLDivElement,
+  { type: "input" | "output"; label: string; uuid: string } & any
+>(({ type = "input", label, uuid, ...rest }, ref) => {
+  const classes = useStyles({});
 
-    return (
-      <div
-        id={"block-port-" + uuid}
-        className={`${classes.io} ${classes[type]}`}
-        ref={ref}
-        {...rest}
-      >
-        {type === "input" && (
-          <>
-            {"<"} {label}
-          </>
-        )}
-        {type === "output" && (
-          <>
-            {label} {">"}
-          </>
-        )}
-      </div>
-    );
-  }
-);
+  return (
+    <div
+      id={"block-port-" + uuid}
+      className={`${classes.io} ${classes[type]}`}
+      ref={ref}
+      {...rest}
+    >
+      {type === "input" && (
+        <>
+          {"<"} {label}
+        </>
+      )}
+      {type === "output" && (
+        <>
+          {label} {">"}
+        </>
+      )}
+    </div>
+  );
+});
 
-function BlockTemplate({
+function BlockTemplateRender({
   type,
   onMove = () => {},
   onMoveStart = () => {},
   onMoveEnd = () => {},
   inputs = [],
   outputs = [],
-}: any) {
+}: {
+  onMove(point: { x: number; y: number }): void;
+  onMoveStart(point: { x: number; y: number }): void;
+  onMoveEnd(): void;
+} & BlockTemplate) {
   const classes = useStyles({});
 
   const bind = useDrag(({ xy: [x, y], first, last }) => {
     if (first) onMoveStart({ x, y });
     if (last) onMoveEnd();
-    onMove({ x: x, y: y });
+    onMove({ x, y });
   });
 
   return (
@@ -171,7 +176,18 @@ function Block({
   onRest = () => {},
   inputs = [],
   outputs = [],
-}: any) {
+}: {
+  x: number;
+  y: number;
+  selected: boolean;
+  onSelect(): void;
+  onMove(point: { x: number; y: number }): void;
+  onDelete(): void;
+  onDragIO(uuid: string, point: { x: number; y: number }): void;
+  onDragIOStart(uuid: string, point: { x: number; y: number }): void;
+  onDragIOEnd(uuid: string, dest: string): void;
+  onRest(): void;
+} & BlockTemplate) {
   const classes = useStyles({});
 
   const { px, py } = useSpring({
@@ -239,7 +255,7 @@ function Block({
         <IOPort
           type="input"
           key={input.uuid}
-          ref={updateIORef(input.uuid)}
+          ref={updateIORef(input.uuid) as any}
           // {...bindIO(input.uuid, false)}
           {...input}
         />
@@ -248,7 +264,7 @@ function Block({
         <IOPort
           type="output"
           key={output.uuid}
-          ref={updateIORef(output.uuid)}
+          ref={updateIORef(output.uuid) as any}
           {...bindIO(output.uuid, true)}
           {...output}
         />
@@ -329,11 +345,24 @@ export default function BlockEditor({
   onAdd = () => {},
   selectedBlock = null,
   onSelectBlock = () => {},
-}: any) {
+}: {
+  templates: BlockTemplate[];
+  blocks: any[];
+  setBlocks(fn: any): void;
+  links: any;
+  setLinks(fn: any): void;
+  getUuid(): string;
+  onAdd(): void;
+  selectedBlock: string;
+  onSelectBlock(fn: any): void;
+}) {
   const classes = useStyles({});
 
   const [draggingTemplate, setDraggingTemplate] = useState(null);
-  const handleMoveTemplateStart = type => pos => {
+  const handleMoveTemplateStart = (type: string) => (pos: {
+    x: number;
+    y: number;
+  }) => {
     const uuid = getUuid();
     const template = templates.find(t => t.type === type);
 
@@ -443,7 +472,7 @@ export default function BlockEditor({
       <div className={classes.drawer}>
         <div className={classes.drawerScroll}>
           {templates.map(block => (
-            <BlockTemplate
+            <BlockTemplateRender
               {...block}
               key={block.type}
               onMove={handleMoveTemplate}
@@ -453,14 +482,14 @@ export default function BlockEditor({
           ))}
         </div>
 
-        <Button
+        {/* <Button
           color="primary"
           variant="contained"
           onClick={onAdd}
           className={classes.addButton}
         >
           <AddIcon />
-        </Button>
+        </Button> */}
       </div>
 
       {blocks.map(block => (
