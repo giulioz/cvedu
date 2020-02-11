@@ -351,7 +351,7 @@ export default function BlockEditor({
   setBlocks(fn: any): void;
   links: any;
   setLinks(fn: any): void;
-  getUuid(): string;
+  getUuid?(): string;
   onAdd(): void;
   selectedBlock: string;
   onSelectBlock(fn: any): void;
