@@ -19,7 +19,7 @@ import {
 
 import CodeEditor from "./CodeEditor";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
-import BlockEditor, { BlockTemplate } from "./BlockEditor";
+import BlockEditor, { BlockTemplate, Block, Link } from "./BlockEditor";
 import CanvasOutput from "./CanvasOutput";
 
 import "./globalStyles.css";
@@ -78,25 +78,27 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const templatesInitial: BlockTemplate[] = [
+type BlockInfo = { code: string; fn: any };
+
+const templatesInitial: BlockTemplate<BlockInfo>[] = [
   {
     type: "CameraInput",
     hardcoded: true,
     code: "",
     inputs: [],
-    outputs: [{ label: "Frame" }],
+    outputs: [{ label: "Frame", type: "output" as const }],
   },
   {
     type: "DisplayFrame",
     hardcoded: true,
     code: "",
-    inputs: [{ label: "Frame" }],
+    inputs: [{ label: "Frame", type: "input" as const }],
     outputs: [],
   },
   {
-    type: "Process",
+    type: "RGBtoYUV",
     hardcoded: false,
-    code: `function Process({ Frame }: { Frame: ImageData }) {
+    code: `function RGBtoYUV({ Frame }: { Frame: ImageData }) {
       // Per ogni pixel...
       for (let i = 0; i < Frame.data.length; i += 4) {
         // Estrae i valori di RGB
@@ -118,19 +120,13 @@ const templatesInitial: BlockTemplate[] = [
       return { Frame };
     }
     `,
-    inputs: [{ label: "Frame" }],
-    outputs: [{ label: "Frame" }],
+    inputs: [{ label: "Frame", type: "input" as const }],
+    outputs: [{ label: "Frame", type: "output" as const }],
   },
 ].map(template => ({
   ...template,
-  inputs: template.inputs.map(i => ({
-    ...i,
-    uuid: `${template.type}-${i.label}-input`,
-  })),
-  outputs: template.outputs.map(i => ({
-    ...i,
-    uuid: `${template.type}-${i.label}-output`,
-  })),
+  code: formatCode(template.code),
+  fn: getFunctionFromCode(template.code),
 }));
 
 export default function App() {
@@ -141,8 +137,6 @@ export default function App() {
     if (String(error) !== currentError) {
       setCurrentError(String(error));
     }
-
-    // setHandler(() => () => {});
   }
   function handleCloseError() {
     setCurrentError(null);
@@ -157,23 +151,23 @@ export default function App() {
     setAddBlockDialogOpen(true);
   }
   function handleCloseAddBlockDialog() {
-    setTemplates(t => [
-      ...t,
-      {
-        type: buildingBlockName,
-        hardcoded: false,
-        code: `function ${buildingBlockName}(input) {}`,
-        inputs: [{ label: "Input", uuid: `${buildingBlockName}-Input-input` }],
-        outputs: [
-          { label: "Output", uuid: `${buildingBlockName}-Output-output` },
-        ],
-      },
-    ]);
-    setAddBlockDialogOpen(false);
+    // setTemplates(t => [
+    //   ...t,
+    //   {
+    //     type: buildingBlockName,
+    //     hardcoded: false,
+    //     code: formatCode(`function ${buildingBlockName}({Input}) {return {}}`),
+    //     inputs: [{ label: "Input", uuid: `${buildingBlockName}-Input-input` }],
+    //     outputs: [
+    //       { label: "Output", uuid: `${buildingBlockName}-Output-output` },
+    //     ],
+    //   },
+    // ]);
+    // setAddBlockDialogOpen(false);
   }
 
-  const [blocks, setBlocks] = useState([]);
-  const [links, setLinks] = useState([]);
+  const [blocks, setBlocks] = useState<Block<BlockInfo>[]>([]);
+  const [links, setLinks] = useState<Link[]>([]);
 
   const [selectedBlockID, setSelectedBlockID] = useState(null);
   const selectedBlock = blocks.find(b => b.uuid === selectedBlockID);
@@ -194,24 +188,29 @@ export default function App() {
   }
 
   function handleFrame(imgData: ImageData) {
+    if (currentError) return;
+
     const endNode = blocks.find(b => b.type === "DisplayFrame");
 
-    function recurse(node) {
+    function recurse(node: Block<BlockInfo>) {
       if (!node || (!node.hardcoded && !node.fn)) return null;
 
-      const inLinks = links.filter(l => l.uuidEnd.startsWith(node.uuid + "-"));
+      const inLinks = links.filter(l => l.dst && node.uuid === l.dst.blockUuid);
       const inBlocks = inLinks.map(l =>
-        blocks.find(b => b.uuid === l.uuidStart.split("-")[0])
+        blocks.find(b => l.src && b.uuid === l.src.blockUuid)
       );
 
-      const resultsChild = inBlocks.map(b => ({
+      const resultsChild: {
+        uuid: string;
+        params: { [key: string]: any };
+      }[] = inBlocks.map(b => ({
         uuid: b.uuid,
         params: recurse(b),
       }));
 
       if (node.type === "DisplayFrame") {
         const onlyResult = resultsChild[0];
-        if (onlyResult && onlyResult.params.Frame) {
+        if (onlyResult && onlyResult.params && onlyResult.params.Frame) {
           return onlyResult.params.Frame;
         } else {
           return null;
@@ -220,14 +219,17 @@ export default function App() {
         return { Frame: imgData };
       } else {
         const params = {};
-        inLinks.forEach(({ uuidStart, uuidEnd }) => {
-          const [srcUuid, srcBlockType, srcInputName] = uuidStart.split("-");
-          const [destUuid, destBlockType, destInputName] = uuidEnd.split("-");
-          params[destInputName] = resultsChild.find(
-            c => c.uuid === srcUuid
-          ).params[srcInputName];
+        node.inputs.forEach(i => (params[i.label] = null));
+        inLinks.forEach(({ src, dst }) => {
+          params[dst.label] = resultsChild.find(
+            c => c.uuid === src.blockUuid
+          ).params[src.label];
         });
-        return node.fn(params);
+        if (node.inputs.every(i => params[i.label] !== null)) {
+          return node.fn(params);
+        } else {
+          return null;
+        }
       }
     }
 
