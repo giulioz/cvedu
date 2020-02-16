@@ -37,7 +37,7 @@ export default function CanvasOutput({
   onError,
   title,
 }: {
-  handler(data: ImageData): Uint8ClampedArray | void;
+  handler(data: ImageData): ImageData | null;
   onError: (error: any) => void;
   title: string;
 }) {
@@ -77,13 +77,13 @@ export default function CanvasOutput({
 
     return () => {
       if (pausedFrame) {
-        const imageData = pausedFrame;
+        let imageData = pausedFrame;
 
         try {
           const tmp = handler(imageData);
 
           if (tmp) {
-            imageData.data.set(tmp);
+            imageData = tmp;
           }
         } catch (e) {
           onError(e.stack);
@@ -99,18 +99,13 @@ export default function CanvasOutput({
         }
 
         context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-        const imageData = context.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
+        let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
         try {
           const tmp = handler(imageData);
 
           if (tmp) {
-            imageData.data.set(tmp);
+            imageData = tmp;
           }
         } catch (e) {
           onError(e.stack);

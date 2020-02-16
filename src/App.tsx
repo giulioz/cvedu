@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -17,12 +17,23 @@ import {
   Button,
 } from "@material-ui/core";
 
-import CodeEditor from "./CodeEditor";
+import { usePeriodicRerender } from "./utils";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
-import BlockEditor, { BlockTemplate, Block, Link } from "./BlockEditor";
+import BlockEditor, {
+  BlockTemplate,
+  Block,
+  Link,
+  IOPortInst,
+} from "./BlockEditor";
+import CodeEditor from "./CodeEditor";
 import CanvasOutput from "./CanvasOutput";
 
 import "./globalStyles.css";
+import {
+  NumberIOHelper,
+  StringIOHelper,
+  ImageIOHelper,
+} from "./IOPortsHelpers";
 const theme = createMuiTheme({
   palette: { type: "dark" },
   overrides: { MuiAppBar: { root: { zIndex: null } } },
@@ -79,26 +90,104 @@ const useStyles = makeStyles(theme => ({
 }));
 
 type BlockInfo = { code: string; fn: any };
+type ValueType = "string" | "number" | "imagedata";
+type IOPortInfo = { valueType: ValueType };
 
-const templatesInitial: BlockTemplate<BlockInfo>[] = [
+const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
   {
     type: "CameraInput",
     hardcoded: true,
     code: "",
     inputs: [],
-    outputs: [{ label: "Frame", type: "output" as const }],
+    outputs: [
+      {
+        label: "Frame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
   },
   {
     type: "DisplayFrame",
     hardcoded: true,
     code: "",
-    inputs: [{ label: "Frame", type: "input" as const }],
+    inputs: [
+      {
+        label: "Frame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
     outputs: [],
+  },
+  {
+    type: "RandomNumber",
+    hardcoded: false,
+    code:
+      "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
+    inputs: [],
+    outputs: [
+      {
+        label: "Number",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+    ],
+  },
+  {
+    type: "Lightness",
+    hardcoded: false,
+    code: `function Lightness({
+      Amount,
+      Frame
+    }: {
+      Amount: number;
+      Frame: ImageData;
+    }): { Frame: ImageData } {
+      // Copia i pixel dell'immagine
+      const newData = new ImageData(Frame.width, Frame.height);
+    
+      // Per ogni pixel...
+      for (let i = 0; i < Frame.data.length; i += 4) {
+        const R = Frame.data[i];
+        const G = Frame.data[i + 1];
+        const B = Frame.data[i + 2];
+    
+        newData.data[i] = R * Amount;
+        newData.data[i + 1] = G * Amount;
+        newData.data[i + 2] = B * Amount;
+        newData.data[i + 3] = 255;
+      }
+    
+      return { Frame: newData };
+    }`,
+    inputs: [
+      {
+        label: "Amount",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "Frame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "Frame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
   },
   {
     type: "RGBtoYUV",
     hardcoded: false,
     code: `function RGBtoYUV({ Frame }: { Frame: ImageData }) {
+      // Copia i pixel dell'immagine
+      const newData = new ImageData(Frame.width, Frame.height);
+    
       // Per ogni pixel...
       for (let i = 0; i < Frame.data.length; i += 4) {
         // Estrae i valori di RGB
@@ -112,16 +201,28 @@ const templatesInitial: BlockTemplate<BlockInfo>[] = [
         const V = 0.439 * R - 0.368 * G - 0.071 * B + 128;
     
         // Salva i valori di YUV sulla copia dell'immagine
-        Frame.data[i] = Y;
-        Frame.data[i + 1] = U;
-        Frame.data[i + 2] = V;
+        newData.data[i] = Y;
+        newData.data[i + 1] = U;
+        newData.data[i + 2] = V;
+        newData.data[i + 3] = 255;
       }
     
-      return { Frame };
-    }
-    `,
-    inputs: [{ label: "Frame", type: "input" as const }],
-    outputs: [{ label: "Frame", type: "output" as const }],
+      return { Frame: newData };
+    }`,
+    inputs: [
+      {
+        label: "Frame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "Frame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
   },
 ].map(template => ({
   ...template,
@@ -166,8 +267,8 @@ export default function App() {
     // setAddBlockDialogOpen(false);
   }
 
-  const [blocks, setBlocks] = useState<Block<BlockInfo>[]>([]);
-  const [links, setLinks] = useState<Link[]>([]);
+  const [blocks, setBlocks] = useState<Block<BlockInfo, IOPortInfo>[]>([]);
+  const [links, setLinks] = useState<Link<IOPortInfo>[]>([]);
 
   const [selectedBlockID, setSelectedBlockID] = useState(null);
   const selectedBlock = blocks.find(b => b.uuid === selectedBlockID);
@@ -187,54 +288,108 @@ export default function App() {
     );
   }
 
-  function handleFrame(imgData: ImageData) {
-    if (currentError) return;
+  const tempResultsRef = useRef<{ [key: string]: { [key: string]: any } }>({});
 
-    const endNode = blocks.find(b => b.type === "DisplayFrame");
+  function handleFrame(imgData: ImageData): ImageData | null {
+    if (currentError) return null;
 
-    function recurse(node: Block<BlockInfo>) {
-      if (!node || (!node.hardcoded && !node.fn)) return null;
+    tempResultsRef.current = {};
 
-      const inLinks = links.filter(l => l.dst && node.uuid === l.dst.blockUuid);
-      const inBlocks = inLinks.map(l =>
-        blocks.find(b => l.src && b.uuid === l.src.blockUuid)
-      );
+    function getNodeParams(b: Block<BlockInfo, IOPortInfo>) {
+      if (!b) return false;
 
-      const resultsChild: {
-        uuid: string;
-        params: { [key: string]: any };
-      }[] = inBlocks.map(b => ({
-        uuid: b.uuid,
-        params: recurse(b),
-      }));
+      const params = {};
+      b.inputs.forEach(i => (params[i.label] = null));
 
-      if (node.type === "DisplayFrame") {
-        const onlyResult = resultsChild[0];
-        if (onlyResult && onlyResult.params && onlyResult.params.Frame) {
-          return onlyResult.params.Frame;
-        } else {
-          return null;
+      const inLinks = links.filter(l => l.dst && b.uuid === l.dst.blockUuid);
+      inLinks.forEach(({ src, dst }) => {
+        if (
+          tempResultsRef.current[src.blockUuid] &&
+          tempResultsRef.current[src.blockUuid][src.label] !== null
+        ) {
+          params[dst.label] = tempResultsRef.current[src.blockUuid][src.label];
         }
-      } else if (node.type === "CameraInput") {
-        return { Frame: imgData };
+      });
+
+      if (b.inputs.every(i => params[i.label] !== null)) {
+        return params;
       } else {
-        const params = {};
-        node.inputs.forEach(i => (params[i.label] = null));
-        inLinks.forEach(({ src, dst }) => {
-          params[dst.label] = resultsChild.find(
-            c => c.uuid === src.blockUuid
-          ).params[src.label];
-        });
-        if (node.inputs.every(i => params[i.label] !== null)) {
-          return node.fn(params);
-        } else {
-          return null;
+        return false;
+      }
+    }
+
+    const startNodes = blocks.filter(b => b.inputs.length === 0);
+    const queue = startNodes.map(b => ({ block: b, params: {} }));
+    while (queue.length > 0) {
+      const { block, params } = queue.shift();
+
+      if (block.hardcoded || block.fn) {
+        if (block.type === "CameraInput") {
+          tempResultsRef.current[block.uuid] = { Frame: imgData };
+        } else if (block.type === "DisplayFrame") {
+          tempResultsRef.current[block.uuid] = { Frame: params["Frame"] };
+        } else if (params && !block.hardcoded) {
+          tempResultsRef.current[block.uuid] = block.fn(params);
+        }
+
+        if (params) {
+          const outLinks = links.filter(
+            l => l.src && l.src.blockUuid === block.uuid
+          );
+
+          const outBlocks = [
+            ...new Set(
+              outLinks.map(l => l.dst && l.dst.blockUuid).filter(uuid => uuid)
+            ),
+          ].map(uuid => blocks.find(b => b.uuid === uuid));
+
+          const outBlocksWithParams = outBlocks
+            .map(b => ({
+              block: b,
+              params: getNodeParams(b),
+            }))
+            .filter(b => b.params);
+
+          outBlocksWithParams.forEach(b => queue.push(b));
         }
       }
     }
 
-    return recurse(endNode);
+    const displayBlock = blocks.find(b => b.type === "DisplayFrame");
+    if (displayBlock && tempResultsRef.current[displayBlock.uuid]) {
+      return tempResultsRef.current[displayBlock.uuid]["Frame"];
+    }
+
+    return null;
   }
+
+  const renderIODecoration = useCallback(
+    (port: IOPortInst<IOPortInfo>) => {
+      const value =
+        tempResultsRef.current[port.blockUuid] &&
+        tempResultsRef.current[port.blockUuid][port.label];
+
+      if (port.type === "output" && value !== null && value !== undefined) {
+        switch (port.valueType) {
+          case "number":
+            return <NumberIOHelper value={value} />;
+          case "string":
+            return <StringIOHelper value={value} />;
+          case "imagedata":
+            return <ImageIOHelper value={value} />;
+
+          default:
+            return null;
+        }
+      } else {
+        return null;
+      }
+    },
+    [tempResultsRef]
+  );
+
+  // To allow deferred IO Decoration update
+  usePeriodicRerender(100);
 
   return (
     <>
@@ -262,8 +417,6 @@ export default function App() {
               <CodeEditor
                 initialCode={code}
                 onRun={handleRun}
-                // initialCode={initialCode}
-                // onRun={handleRun}
                 onError={handleError}
               />
             </div>
@@ -278,6 +431,7 @@ export default function App() {
               onAdd={handleAdd}
               selectedBlock={selectedBlockID}
               onSelectBlock={setSelectedBlockID}
+              renderIODecoration={renderIODecoration}
             />
           </div>
         </div>

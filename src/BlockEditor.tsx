@@ -8,18 +8,22 @@ import CloseIcon from "@material-ui/icons/Close";
 
 import { uuidv4 } from "./utils";
 
-export type IOPort =
-  | ({ ut: "template" } & IOPortTemplate)
-  | ({ ut: "inst" } & IOPortInst);
-export type IOPortTemplate = {
+export type IOPort<TPortInfo> =
+  | ({ ut: "template" } & IOPortTemplate<TPortInfo>)
+  | ({ ut: "inst" } & IOPortInst<TPortInfo>);
+export type IOPortTemplate<TPortInfo> = {
   label: string;
   type: "input" | "output";
-};
-export type IOPortInst = IOPortTemplate & {
+} & TPortInfo;
+export type IOPortInst<TPortInfo> = IOPortTemplate<TPortInfo> & {
   blockUuid: string;
   blockName: string;
 };
-export type BlockTemplate<TBlockInfo, TPortType = IOPortTemplate> = {
+export type BlockTemplate<
+  TBlockInfo,
+  TPortInfo,
+  TPortType = IOPortTemplate<TPortInfo>
+> = {
   type: string;
   hardcoded: boolean;
   code: string;
@@ -29,13 +33,16 @@ export type BlockTemplate<TBlockInfo, TPortType = IOPortTemplate> = {
 
 export type PosObject = { x: number; y: number };
 
-export type Block<TBlockInfo> = BlockTemplate<TBlockInfo, IOPortInst> & {
+export type Block<TBlockInfo, TPortInfo> = BlockTemplate<
+  TBlockInfo,
+  IOPortInst<TPortInfo>
+> & {
   uuid: string;
 } & PosObject;
 
-export type Link = {
-  src: IOPortInst;
-  dst: IOPortInst | null;
+export type Link<TPortInfo> = {
+  src: IOPortInst<TPortInfo>;
+  dst: IOPortInst<TPortInfo> | null;
 
   ax?: number;
   ay?: number;
@@ -43,14 +50,14 @@ export type Link = {
   by?: number;
 };
 
-function serializeIOPortInst(port: IOPortInst) {
+function serializeIOPortInst(port: IOPortInst<{}>) {
   return [port.blockUuid, port.blockName, port.label, port.type].join("-");
 }
-function serializeIOPortTemplate(port: IOPortTemplate) {
+function serializeIOPortTemplate(port: IOPortTemplate<{}>) {
   return [port.label, port.type].join("-");
 }
 
-function deserializeIOPort(str: string): IOPortInst {
+function deserializeIOPort(str: string): IOPortInst<{}> {
   const [blockUuid, blockName, label, type] = str.split("-");
   return {
     blockUuid,
@@ -135,37 +142,44 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-const IOPortRender = React.forwardRef(
-  ({ port, ...rest }: { port: IOPort }, ref: React.Ref<HTMLDivElement>) => {
-    const classes = useStyles({});
+const IOPortRender = React.forwardRef(function<T>(
+  {
+    renderIODecoration,
+    port,
+    ...rest
+  }: { renderIODecoration: (port: IOPortInst<T>) => any; port: IOPort<T> },
+  ref: React.Ref<HTMLDivElement>
+) {
+  const classes = useStyles({});
 
-    return (
-      <div
-        id={
-          port.ut === "inst"
-            ? "block-port-" + serializeIOPortInst(port)
-            : undefined
-        }
-        className={`${classes.io} ${classes[port.type]}`}
-        ref={ref}
-        {...rest}
-      >
-        {port.type === "input" && (
-          <>
-            {"<"} {port.label}
-          </>
-        )}
-        {port.type === "output" && (
-          <>
-            {port.label} {">"}
-          </>
-        )}
-      </div>
-    );
-  }
-);
+  return (
+    <div
+      id={
+        port.ut === "inst"
+          ? "block-port-" + serializeIOPortInst(port)
+          : undefined
+      }
+      className={`${classes.io} ${classes[port.type]}`}
+      ref={ref}
+      {...rest}
+    >
+      {port.type === "input" && (
+        <>
+          {renderIODecoration(port as IOPortInst<T>)}
+          {"<"} {port.label}
+        </>
+      )}
+      {port.type === "output" && (
+        <>
+          {port.label} {">"}
+          {renderIODecoration(port as IOPortInst<T>)}
+        </>
+      )}
+    </div>
+  );
+});
 
-function BlockTemplateRender<TBlockInfo>({
+function BlockTemplateRender<TBlockInfo, TPortInfo>({
   type,
   onMove = () => {},
   onMoveStart = () => {},
@@ -176,7 +190,7 @@ function BlockTemplateRender<TBlockInfo>({
   onMove(point: PosObject): void;
   onMoveStart(point: PosObject): void;
   onMoveEnd(): void;
-} & BlockTemplate<TBlockInfo>) {
+} & BlockTemplate<TBlockInfo, TPortInfo>) {
   const classes = useStyles({});
 
   const bind = useDrag(({ xy: [x, y], first, last }) => {
@@ -192,12 +206,14 @@ function BlockTemplateRender<TBlockInfo>({
       </div>
       {inputs.map(input => (
         <IOPortRender
+          renderIODecoration={() => null}
           key={serializeIOPortTemplate(input)}
           port={{ ...input, ut: "template" }}
         />
       ))}
       {outputs.map(output => (
         <IOPortRender
+          renderIODecoration={() => null}
           key={serializeIOPortTemplate(output)}
           port={{ ...output, ut: "template" }}
         />
@@ -214,7 +230,7 @@ function getIOPortPos(element: HTMLElement, right: boolean) {
   };
 }
 
-function BlockRender<TBlockInfo>({
+function BlockRender<TBlockInfo, TPortInfo>({
   x,
   y,
   type,
@@ -228,6 +244,7 @@ function BlockRender<TBlockInfo>({
   onRest = () => {},
   inputs = [],
   outputs = [],
+  renderIODecoration,
 }: {
   x: number;
   y: number;
@@ -235,11 +252,12 @@ function BlockRender<TBlockInfo>({
   onSelect(): void;
   onMove(point: PosObject): void;
   onDelete(): void;
-  onDragIO(src: IOPortInst, point: PosObject): void;
-  onDragIOStart(src: IOPortInst, point: PosObject): void;
-  onDragIOEnd(src: IOPortInst, dst: IOPortInst): void;
+  onDragIO(src: IOPortInst<{}>, point: PosObject): void;
+  onDragIOStart(src: IOPortInst<{}>, point: PosObject): void;
+  onDragIOEnd(src: IOPortInst<{}>, dst: IOPortInst<{}>): void;
   onRest(): void;
-} & Block<TBlockInfo>) {
+  renderIODecoration: (port: IOPortInst<TPortInfo>) => any;
+} & Block<TBlockInfo, TPortInfo>) {
   const classes = useStyles({});
 
   const { px, py } = useSpring({
@@ -268,7 +286,7 @@ function BlockRender<TBlockInfo>({
   });
 
   const ioRefs = useRef<{ [key: string]: HTMLElement }>({});
-  const updateIORef = (port: IOPortInst) => (ref: HTMLElement) => {
+  const updateIORef = (port: IOPortInst<{}>) => (ref: HTMLElement) => {
     ioRefs.current[serializeIOPortInst(port)] = ref;
   };
 
@@ -309,6 +327,7 @@ function BlockRender<TBlockInfo>({
       </div>
       {inputs.map(input => (
         <IOPortRender
+          renderIODecoration={renderIODecoration}
           port={{ ...input, ut: "inst" as const }}
           key={serializeIOPortInst(input)}
           ref={updateIORef(input) as any}
@@ -317,6 +336,7 @@ function BlockRender<TBlockInfo>({
       ))}
       {outputs.map(output => (
         <IOPortRender
+          renderIODecoration={renderIODecoration}
           port={{ ...output, ut: "inst" as const }}
           key={serializeIOPortInst(output)}
           ref={updateIORef(output) as any}
@@ -389,7 +409,7 @@ function LinkRender({
   );
 }
 
-export default function BlockEditor<TBlockInfo>({
+export default function BlockEditor<TBlockInfo, TPortInfo>({
   templates,
   blocks,
   setBlocks,
@@ -399,18 +419,38 @@ export default function BlockEditor<TBlockInfo>({
   onAdd = () => {},
   selectedBlock = null,
   onSelectBlock = () => {},
+  renderIODecoration = () => null,
 }: {
-  templates: BlockTemplate<TBlockInfo>[];
-  blocks: Block<TBlockInfo>[];
-  setBlocks(fn: (blocks: Block<TBlockInfo>[]) => Block<TBlockInfo>[]): void;
-  links: Link[];
-  setLinks(fn: (links: Link[]) => Link[]): void;
+  templates: BlockTemplate<TBlockInfo, TPortInfo>[];
+  blocks: Block<TBlockInfo, TPortInfo>[];
+  setBlocks(
+    fn: (
+      blocks: Block<TBlockInfo, TPortInfo>[]
+    ) => Block<TBlockInfo, TPortInfo>[]
+  ): void;
+  links: Link<TPortInfo>[];
+  setLinks(fn: (links: Link<TPortInfo>[]) => Link<TPortInfo>[]): void;
   getUuid?(): string;
   onAdd(): void;
   selectedBlock: string;
   onSelectBlock(fn: (selected: string) => string): void;
+  renderIODecoration?: (port: IOPortInst<TPortInfo>) => any;
 }) {
   const classes = useStyles({});
+
+  function searchTrueIOPort(port: IOPortInst<{}>) {
+    const block = blocks.find(b => b.uuid === port.blockUuid);
+    if (block) {
+      const input =
+        port.type === "input" && block.inputs.find(i => i.label === port.label);
+      const output =
+        port.type === "output" &&
+        block.outputs.find(i => i.label === port.label);
+      return input || output;
+    } else {
+      return null;
+    }
+  }
 
   const [draggingTemplate, setDraggingTemplate] = useState(null);
   const handleMoveTemplateStart = (type: string) => (pos: {
@@ -421,7 +461,7 @@ export default function BlockEditor<TBlockInfo>({
     const template = templates.find(t => t.type === type);
 
     setBlocks(blocks => {
-      const newBlock: Block<TBlockInfo> = {
+      const newBlock: Block<TBlockInfo, TPortInfo> = {
         ...template,
         ...pos,
         uuid,
@@ -463,13 +503,15 @@ export default function BlockEditor<TBlockInfo>({
     setBlocks(blocks => blocks.filter(block => block.uuid !== uuid));
   };
 
-  function handleDragIOStart(src: IOPortInst, { x, y }) {
+  function handleDragIOStart(src: IOPortInst<TPortInfo>, { x, y }) {
     setLinks(links => [
       { src, dst: null, ax: x, ay: y, bx: x, by: y },
-      ...links.filter(l => serializeIOPortInst(l.src) !== serializeIOPortInst(src)),
+      ...links.filter(
+        l => serializeIOPortInst(l.src) !== serializeIOPortInst(src)
+      ),
     ]);
   }
-  function handleDragIO(src: IOPortInst, { x, y }) {
+  function handleDragIO(src: IOPortInst<TPortInfo>, { x, y }) {
     setLinks(links =>
       links.map(l =>
         serializeIOPortInst(l.src) === serializeIOPortInst(src)
@@ -478,11 +520,14 @@ export default function BlockEditor<TBlockInfo>({
       )
     );
   }
-  function handleDragIOEnd(src: IOPortInst, dst: IOPortInst) {
+  function handleDragIOEnd(
+    src: IOPortInst<TPortInfo>,
+    dst: IOPortInst<TPortInfo>
+  ) {
     setLinks(links =>
       links.map(l =>
         serializeIOPortInst(l.src) === serializeIOPortInst(src)
-          ? { src, dst }
+          ? { src: searchTrueIOPort(src), dst: searchTrueIOPort(dst) }
           : l
       )
     );
@@ -572,7 +617,6 @@ export default function BlockEditor<TBlockInfo>({
 
       {blocks.map(block => (
         <BlockRender
-          {...block}
           key={block.uuid}
           selected={selectedBlock === block.uuid}
           onSelect={handleSelectBlock(block.uuid)}
@@ -582,6 +626,8 @@ export default function BlockEditor<TBlockInfo>({
           onDragIO={handleDragIO}
           onDragIOEnd={handleDragIOEnd}
           onRest={updateLinkPos}
+          renderIODecoration={renderIODecoration}
+          {...block}
         />
       ))}
     </div>
