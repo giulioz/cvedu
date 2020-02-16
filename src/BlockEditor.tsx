@@ -506,15 +506,14 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   function handleDragIOStart(src: IOPortInst<TPortInfo>, { x, y }) {
     setLinks(links => [
       { src, dst: null, ax: x, ay: y, bx: x, by: y },
-      ...links.filter(
-        l => serializeIOPortInst(l.src) !== serializeIOPortInst(src)
-      ),
+      ...links,
     ]);
   }
   function handleDragIO(src: IOPortInst<TPortInfo>, { x, y }) {
     setLinks(links =>
       links.map(l =>
-        serializeIOPortInst(l.src) === serializeIOPortInst(src)
+        serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
+        l.dst === null
           ? { ...l, bx: x, by: y }
           : l
       )
@@ -526,7 +525,8 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   ) {
     setLinks(links =>
       links.map(l =>
-        serializeIOPortInst(l.src) === serializeIOPortInst(src)
+        serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
+        l.dst === null
           ? { src: searchTrueIOPort(src), dst: searchTrueIOPort(dst) }
           : l
       )
@@ -585,9 +585,9 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         <LinkRender
           {...link}
           key={
-            (link.src ? serializeIOPortInst(link.src) : "tba") +
+            (link.src ? serializeIOPortInst(link.src) : "tba" + uuidv4()) +
             "-link-" +
-            (link.dst ? serializeIOPortInst(link.dst) : "tba")
+            (link.dst ? serializeIOPortInst(link.dst) : "tba" + uuidv4())
           }
         />
       ))}
