@@ -25,15 +25,16 @@ import BlockEditor, {
   Link,
   IOPortInst,
 } from "./BlockEditor";
-import CodeEditor from "./CodeEditor";
-import CanvasOutput from "./CanvasOutput";
-
-import "./globalStyles.css";
 import {
   NumberIOHelper,
   StringIOHelper,
   ImageIOHelper,
+  MaskIOHelper,
 } from "./IOPortsHelpers";
+import CodeEditor from "./CodeEditor";
+import CanvasOutput from "./CanvasOutput";
+
+import "./globalStyles.css";
 const theme = createMuiTheme({
   palette: { type: "dark" },
   overrides: { MuiAppBar: { root: { zIndex: null } } },
@@ -90,7 +91,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 type BlockInfo = { code: string; fn: any };
-type ValueType = "string" | "number" | "imagedata";
+type ValueType = "string" | "number" | "imagedata" | "mask";
 type IOPortInfo = { valueType: ValueType };
 
 const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
@@ -221,6 +222,137 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         label: "Frame",
         type: "output" as const,
         valueType: "imagedata" as const,
+      },
+    ],
+  },
+  {
+    type: "ChromaKey",
+    hardcoded: false,
+    code: `const pU = 130;
+    const pV = 162;
+    const radius = 5;
+    
+    function ChromaKey({ YUVFrame }: { YUVFrame: ImageData }): { Mask: {data:boolean[];width:number;height:number} } {
+      // Crea una maschera vuota
+      const data = new Array<boolean>(YUVFrame.width * YUVFrame.height).fill(false);
+    
+      for (let i = 0; i < YUVFrame.data.length; i += 4) {
+        // Estraggo i valori di U e V per quel pixel
+        const U = YUVFrame.data[i + 1];
+        const V = YUVFrame.data[i + 2];
+    
+        // Calcolo la distanza fra il pixel e i valori di u e v desiderati
+        const du = U - pU;
+        const dv = V - pV;
+    
+        // Ne faccio la somma dei quadrati
+        const d2 = du * du + dv * dv;
+    
+        // E calcolo il quadrato del raggio
+        const r2 = radius * radius;
+    
+        // Se la somma dei quadrati è inferiore al quadrato del raggio il pixel è valido
+        data[i / 4] = d2 < r2;
+      }
+    
+      return { Mask:{data,width:YUVFrame.width,height:YUVFrame.height} };
+    }`,
+    inputs: [
+      {
+        label: "YUVFrame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "Mask",
+        type: "output" as const,
+        valueType: "mask" as const,
+      },
+    ],
+  },
+  {
+    type: "Hough",
+    hardcoded: false,
+    code: `const a_step = 0.1;
+    const r_step = 4.0;
+    const max_r = 400.0;
+    
+    function Hough({ YUVFrame, Mask }: { YUVFrame: ImageData;Mask: {data:boolean[];width:number;height:number} }): { A:number;R:number;A_Deg:number } {
+      // Accumulatore
+  const alpha_steps = Math.round(Math.PI / a_step) + 1;
+  const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
+  const accumulator = new Array(alpha_steps * r_steps).fill(0);
+
+  // Variabili per immagazzinare i massimi trovati
+  let current_a = 0;
+  let current_r = 0;
+  let current_max = 0;
+
+  for (let i = 0; i < YUVFrame.data.length; i += 4) {
+    const maskValue = Mask.data[i / 4];
+    const imgY = YUVFrame.data[i + 0];
+
+    const x = (i / 4) % YUVFrame.width;
+    const y = Math.floor(i / 4 / YUVFrame.width);
+
+    // Se un pixel è stato selezionato dalla maschera può far parte della barra
+    if (maskValue) {
+      // Creo la sua curva trasformata iterando per ogni angolo
+      for (let a = 0.0; a < Math.PI; a += a_step) {
+        // Calcolo il parametro r per tale angolo
+        const r = x * Math.cos(a) + y * Math.sin(a);
+
+        // Se tale parametro è compreso nei bound attesi...
+        if (r > -max_r && r < max_r) {
+          // Calcolo la cella nell'accumulatore
+          const r_pos = Math.round((r + max_r) / r_step);
+          const a_pos = Math.round(a / a_step);
+
+          // E vi aggiungo il valore della luminanza
+          accumulator[a_pos + r_pos * alpha_steps] += imgY;
+
+          // Controllo se il valore ottenuto è superiore al massimo attuale
+          if (accumulator[a_pos + r_pos * alpha_steps] > current_max) {
+            current_max = accumulator[a_pos + r_pos * alpha_steps];
+            current_a = a;
+            current_r = r;
+          }
+        }
+      }
+    }
+  }
+
+  return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+    }`,
+    inputs: [
+      {
+        label: "YUVFrame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+      {
+        label: "Mask",
+        type: "input" as const,
+        valueType: "mask" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "A",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "R",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "A_Deg",
+        type: "output" as const,
+        valueType: "number" as const,
       },
     ],
   },
@@ -377,6 +509,8 @@ export default function App() {
             return <StringIOHelper value={value} />;
           case "imagedata":
             return <ImageIOHelper value={value} />;
+          case "mask":
+            return <MaskIOHelper value={value} />;
 
           default:
             return null;
