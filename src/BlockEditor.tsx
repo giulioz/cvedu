@@ -254,7 +254,7 @@ function BlockRender<TBlockInfo, TPortInfo>({
   onDelete(): void;
   onDragIO(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOStart(src: IOPortInst<{}>, point: PosObject): void;
-  onDragIOEnd(src: IOPortInst<{}>, dst: IOPortInst<{}>): void;
+  onDragIOEnd(src: IOPortInst<{}>, dst: IOPortInst<{}> | null): void;
   onRest(): void;
   renderIODecoration: (port: IOPortInst<TPortInfo>) => any;
 } & Block<TBlockInfo, TPortInfo>) {
@@ -302,8 +302,13 @@ function BlockRender<TBlockInfo, TPortInfo>({
       onDragIO(src, { x: px, y: py });
 
       const lastElement = document.elementFromPoint(px, py);
-      if (last)
-        onDragIOEnd(src, deserializeIOPort(lastElement.id.substring(11)));
+      if (last) {
+        if (lastElement.id.startsWith("block-port-")) {
+          onDragIOEnd(src, deserializeIOPort(lastElement.id.substring(11)));
+        } else {
+          onDragIOEnd(src, null);
+        }
+      }
 
       event.stopPropagation();
     }
@@ -355,6 +360,7 @@ function LinkRender({
   strokeWidth = 3,
   markerWidth = 2,
   markerHeight = 4,
+  onDoubleClick = () => {},
 }) {
   const classes = useStyles({});
 
@@ -385,6 +391,7 @@ function LinkRender({
       }}
       width={width + strokeWidth + markerWidth * 2}
       height={height + strokeWidth + markerHeight * 2}
+      onDoubleClick={onDoubleClick}
     >
       <defs>
         <marker
@@ -521,17 +528,41 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   }
   function handleDragIOEnd(
     src: IOPortInst<TPortInfo>,
-    dst: IOPortInst<TPortInfo>
+    dst: IOPortInst<TPortInfo> | null
   ) {
+    if (dst) {
+      setLinks(links =>
+        links.map(l =>
+          serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
+          l.dst === null
+            ? { src: searchTrueIOPort(src), dst: searchTrueIOPort(dst) }
+            : l
+        )
+      );
+    } else {
+      setLinks(links =>
+        links.filter(
+          l =>
+            !(
+              serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
+              l.dst === null
+            )
+        )
+      );
+    }
+  }
+
+  const handleRemoveLink = (link: Link<TPortInfo>) => () => {
     setLinks(links =>
-      links.map(l =>
-        serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
-        l.dst === null
-          ? { src: searchTrueIOPort(src), dst: searchTrueIOPort(dst) }
-          : l
+      links.filter(
+        l =>
+          !(
+            serializeIOPortInst(link.src) === serializeIOPortInst(l.src) &&
+            serializeIOPortInst(link.dst) === serializeIOPortInst(l.dst)
+          )
       )
     );
-  }
+  };
 
   const linksWithPosGen = () =>
     links.map(link => {
@@ -584,6 +615,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
       {linksWithPos.map(link => (
         <LinkRender
           {...link}
+          onDoubleClick={handleRemoveLink(link)}
           key={
             (link.src ? serializeIOPortInst(link.src) : "tba" + uuidv4()) +
             "-link-" +
