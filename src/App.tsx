@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -31,6 +31,7 @@ import {
   ImageIOHelper,
   MaskIOHelper,
 } from "./IOPortsHelpers";
+import { NumberInputHelper } from "./InputHelpers";
 import CodeEditor from "./CodeEditor";
 import CanvasOutput from "./CanvasOutput";
 
@@ -94,51 +95,93 @@ type BlockInfo = { code: string; fn: any };
 type ValueType = "string" | "number" | "imagedata" | "mask";
 type IOPortInfo = { valueType: ValueType };
 
-const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
-  {
-    type: "CameraInput",
-    hardcoded: true,
-    code: "",
-    inputs: [],
-    outputs: [
-      {
-        label: "Frame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
-      },
-    ],
-  },
-  {
-    type: "DisplayFrame",
-    hardcoded: true,
-    code: "",
-    inputs: [
-      {
-        label: "Frame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
-      },
-    ],
-    outputs: [],
-  },
-  {
-    type: "RandomNumber",
-    hardcoded: false,
-    code:
-      "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
-    inputs: [],
-    outputs: [
-      {
-        label: "Number",
-        type: "output" as const,
-        valueType: "number" as const,
-      },
-    ],
-  },
-  {
-    type: "Lightness",
-    hardcoded: false,
-    code: `function Lightness({
+function wrapInputCustomRenderer<T, Rest>(
+  Renderer: (
+    params: {
+      value?: T;
+      setValue: (value: T) => void;
+    } & Rest
+  ) => JSX.Element,
+  customValuesRef: React.RefObject<{ [key: string]: any }>,
+  params: Rest
+) {
+  return (block: Block<BlockInfo, IOPortInfo>) => {
+    return (
+      <Renderer
+        value={customValuesRef.current[block.uuid]}
+        setValue={value => (customValuesRef.current[block.uuid] = value)}
+        {...params}
+      />
+    );
+  };
+}
+
+const templatesInitial: (
+  customValuesRef: React.RefObject<{ [key: string]: any }>
+) => BlockTemplate<BlockInfo, IOPortInfo>[] = customValueRef =>
+  [
+    {
+      type: "CameraInput",
+      hardcoded: true,
+      code: "",
+      inputs: [],
+      outputs: [
+        {
+          label: "Frame",
+          type: "output" as const,
+          valueType: "imagedata" as const,
+        },
+      ],
+    },
+    {
+      type: "NumericInput",
+      hardcoded: true,
+      code: "",
+      customRenderer: wrapInputCustomRenderer(
+        NumberInputHelper,
+        customValueRef,
+        { minValue: 0, maxValue: 5, step: 0.01 }
+      ),
+      inputs: [],
+      outputs: [
+        {
+          label: "Number",
+          type: "output" as const,
+          valueType: "number" as const,
+        },
+      ],
+    },
+    {
+      type: "DisplayFrame",
+      hardcoded: true,
+      code: "",
+      inputs: [
+        {
+          label: "Frame",
+          type: "input" as const,
+          valueType: "imagedata" as const,
+        },
+      ],
+      outputs: [],
+    },
+    {
+      type: "RandomNumber",
+      hardcoded: false,
+      code:
+        "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
+      inputs: [],
+      outputs: [
+        {
+          label: "Number",
+          type: "output" as const,
+          valueType: "number" as const,
+        },
+      ],
+    },
+    {
+      type: "Lightness",
+      hardcoded: false,
+      code: `function Lightness({
       Amount,
       Frame
     }: {
@@ -162,30 +205,30 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Frame: newData };
     }`,
-    inputs: [
-      {
-        label: "Amount",
-        type: "input" as const,
-        valueType: "number" as const,
-      },
-      {
-        label: "Frame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
-      },
-    ],
-    outputs: [
-      {
-        label: "Frame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
-      },
-    ],
-  },
-  {
-    type: "RGBtoYUV",
-    hardcoded: false,
-    code: `function RGBtoYUV({ Frame }: { Frame: ImageData }) {
+      inputs: [
+        {
+          label: "Amount",
+          type: "input" as const,
+          valueType: "number" as const,
+        },
+        {
+          label: "Frame",
+          type: "input" as const,
+          valueType: "imagedata" as const,
+        },
+      ],
+      outputs: [
+        {
+          label: "Frame",
+          type: "output" as const,
+          valueType: "imagedata" as const,
+        },
+      ],
+    },
+    {
+      type: "RGBtoYUV",
+      hardcoded: false,
+      code: `function RGBtoYUV({ Frame }: { YUVFrame: ImageData }) {
       // Copia i pixel dell'immagine
       const newData = new ImageData(Frame.width, Frame.height);
     
@@ -208,27 +251,27 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         newData.data[i + 3] = 255;
       }
     
-      return { Frame: newData };
+      return { YUVFrame: newData };
     }`,
-    inputs: [
-      {
-        label: "Frame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
-      },
-    ],
-    outputs: [
-      {
-        label: "Frame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
-      },
-    ],
-  },
-  {
-    type: "ChromaKey",
-    hardcoded: false,
-    code: `const pU = 130;
+      inputs: [
+        {
+          label: "Frame",
+          type: "input" as const,
+          valueType: "imagedata" as const,
+        },
+      ],
+      outputs: [
+        {
+          label: "YUVFrame",
+          type: "output" as const,
+          valueType: "imagedata" as const,
+        },
+      ],
+    },
+    {
+      type: "ChromaKey",
+      hardcoded: false,
+      code: `const pU = 130;
     const pV = 162;
     const radius = 5;
     
@@ -257,25 +300,25 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Mask:{data,width:YUVFrame.width,height:YUVFrame.height} };
     }`,
-    inputs: [
-      {
-        label: "YUVFrame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
-      },
-    ],
-    outputs: [
-      {
-        label: "Mask",
-        type: "output" as const,
-        valueType: "mask" as const,
-      },
-    ],
-  },
-  {
-    type: "Hough",
-    hardcoded: false,
-    code: `const a_step = 0.1;
+      inputs: [
+        {
+          label: "YUVFrame",
+          type: "input" as const,
+          valueType: "imagedata" as const,
+        },
+      ],
+      outputs: [
+        {
+          label: "Mask",
+          type: "output" as const,
+          valueType: "mask" as const,
+        },
+      ],
+    },
+    {
+      type: "Hough",
+      hardcoded: false,
+      code: `const a_step = 0.1;
     const r_step = 4.0;
     const max_r = 400.0;
     
@@ -326,41 +369,41 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
 
   return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
     }`,
-    inputs: [
-      {
-        label: "YUVFrame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
-      },
-      {
-        label: "Mask",
-        type: "input" as const,
-        valueType: "mask" as const,
-      },
-    ],
-    outputs: [
-      {
-        label: "A",
-        type: "output" as const,
-        valueType: "number" as const,
-      },
-      {
-        label: "R",
-        type: "output" as const,
-        valueType: "number" as const,
-      },
-      {
-        label: "A_Deg",
-        type: "output" as const,
-        valueType: "number" as const,
-      },
-    ],
-  },
-].map(template => ({
-  ...template,
-  code: formatCode(template.code),
-  fn: getFunctionFromCode(template.code),
-}));
+      inputs: [
+        {
+          label: "YUVFrame",
+          type: "input" as const,
+          valueType: "imagedata" as const,
+        },
+        {
+          label: "Mask",
+          type: "input" as const,
+          valueType: "mask" as const,
+        },
+      ],
+      outputs: [
+        {
+          label: "A",
+          type: "output" as const,
+          valueType: "number" as const,
+        },
+        {
+          label: "R",
+          type: "output" as const,
+          valueType: "number" as const,
+        },
+        {
+          label: "A_Deg",
+          type: "output" as const,
+          valueType: "number" as const,
+        },
+      ],
+    },
+  ].map(template => ({
+    ...template,
+    code: formatCode(template.code),
+    fn: getFunctionFromCode(template.code),
+  }));
 
 export default function App() {
   const classes = useStyles({});
@@ -375,7 +418,11 @@ export default function App() {
     setCurrentError(null);
   }
 
-  const [templates, setTemplates] = useState(templatesInitial);
+  const customValueRef = useRef({});
+
+  const [templates, setTemplates] = useState(() =>
+    templatesInitial(customValueRef)
+  );
 
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
   const [buildingBlockName, setBuildingBlockName] = useState("");
@@ -458,6 +505,10 @@ export default function App() {
       if (block.hardcoded || block.fn) {
         if (block.type === "CameraInput") {
           tempResultsRef.current[block.uuid] = { Frame: imgData };
+        } else if (block.type === "NumericInput") {
+          tempResultsRef.current[block.uuid] = {
+            Number: customValueRef.current[block.uuid],
+          };
         } else if (block.type === "DisplayFrame") {
           tempResultsRef.current[block.uuid] = { Frame: params["Frame"] };
         } else if (params && !block.hardcoded) {

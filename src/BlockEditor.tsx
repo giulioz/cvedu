@@ -29,6 +29,7 @@ export type BlockTemplate<
   code: string;
   inputs: TPortType[];
   outputs: TPortType[];
+  customRenderer?: (block: Block<TBlockInfo, TPortInfo>) => JSX.Element;
 } & TBlockInfo;
 
 export type PosObject = { x: number; y: number };
@@ -147,7 +148,10 @@ const IOPortRender = React.forwardRef(function<T>(
     renderIODecoration,
     port,
     ...rest
-  }: { renderIODecoration: (port: IOPortInst<T>) => any; port: IOPort<T> },
+  }: {
+    renderIODecoration: (port: IOPortInst<T>) => JSX.Element;
+    port: IOPort<T>;
+  },
   ref: React.Ref<HTMLDivElement>
 ) {
   const classes = useStyles({});
@@ -231,9 +235,6 @@ function getIOPortPos(element: HTMLElement, right: boolean) {
 }
 
 function BlockRender<TBlockInfo, TPortInfo>({
-  x,
-  y,
-  type,
   selected = false,
   onSelect = () => {},
   onMove = () => {},
@@ -242,12 +243,9 @@ function BlockRender<TBlockInfo, TPortInfo>({
   onDragIOStart = () => {},
   onDragIOEnd = () => {},
   onRest = () => {},
-  inputs = [],
-  outputs = [],
   renderIODecoration,
+  block,
 }: {
-  x: number;
-  y: number;
   selected: boolean;
   onSelect(): void;
   onMove(point: PosObject): void;
@@ -256,9 +254,12 @@ function BlockRender<TBlockInfo, TPortInfo>({
   onDragIOStart(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOEnd(src: IOPortInst<{}>, dst: IOPortInst<{}> | null): void;
   onRest(): void;
-  renderIODecoration: (port: IOPortInst<TPortInfo>) => any;
-} & Block<TBlockInfo, TPortInfo>) {
+  renderIODecoration: (port: IOPortInst<TPortInfo>) => JSX.Element;
+  block: Block<TBlockInfo, TPortInfo>;
+}) {
   const classes = useStyles({});
+
+  const { x, y, type, inputs, outputs, customRenderer } = block;
 
   const { px, py } = useSpring({
     px: x || 0,
@@ -277,11 +278,12 @@ function BlockRender<TBlockInfo, TPortInfo>({
     } else {
       if (divRef.current && (x === undefined || y === undefined)) {
         const rect = divRef.current.getBoundingClientRect();
-        x = rect.x + rect.width / 2;
-        y = rect.y;
+        const x = rect.x + rect.width / 2;
+        const y = rect.y;
+        onMove({ x: px + x, y: py + y });
+      } else {
+        onMove({ x: px + x, y: py + y });
       }
-
-      onMove({ x: px + x, y: py + y });
     }
   });
 
@@ -348,6 +350,7 @@ function BlockRender<TBlockInfo, TPortInfo>({
           {...bindIO(output, true)}
         />
       ))}
+      {customRenderer && <div className={classes.io}>{customRenderer(block)}</div>}
     </animated.div>
   );
 }
@@ -441,7 +444,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   onAdd(): void;
   selectedBlock: string;
   onSelectBlock(fn: (selected: string) => string): void;
-  renderIODecoration?: (port: IOPortInst<TPortInfo>) => any;
+  renderIODecoration?: (port: IOPortInst<TPortInfo>) => JSX.Element;
 }) {
   const classes = useStyles({});
 
@@ -647,8 +650,8 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         </Button> */}
       </div>
 
-      {blocks.map(block => (
-        <BlockRender
+      {blocks.map((block: Block<TBlockInfo, TPortInfo>) => (
+        <BlockRender<TBlockInfo, TPortInfo>
           key={block.uuid}
           selected={selectedBlock === block.uuid}
           onSelect={handleSelectBlock(block.uuid)}
@@ -659,7 +662,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
           onDragIOEnd={handleDragIOEnd}
           onRest={updateLinkPos}
           renderIODecoration={renderIODecoration}
-          {...block}
+          block={block}
         />
       ))}
     </div>
