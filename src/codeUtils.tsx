@@ -96,7 +96,7 @@ export function getFunctionFromCode<THandler>(code: string) {
   const tail = `;return ${functionName};`;
 
   const final = head + processed + tail;
-  console.log(final);
+  // console.log(final);
 
   /* eslint-disable-next-line no-new-func */
   const F = new Function(final)() as THandler;

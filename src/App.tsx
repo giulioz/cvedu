@@ -17,7 +17,7 @@ import {
   Button,
 } from "@material-ui/core";
 
-import { usePeriodicRerender } from "./utils";
+import { usePeriodicRerender, usePersistState } from "./utils";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
 import BlockEditor, {
   BlockTemplate,
@@ -31,11 +31,12 @@ import {
   ImageIOHelper,
   MaskIOHelper,
 } from "./IOPortsHelpers";
-import { NumberInputHelper } from "./InputHelpers";
+import { NumberInputHelper, UVInputHelper } from "./InputHelpers";
 import CodeEditor from "./CodeEditor";
 import CanvasOutput from "./CanvasOutput";
 
 import "./globalStyles.css";
+
 const theme = createMuiTheme({
   palette: { type: "dark" },
   overrides: { MuiAppBar: { root: { zIndex: null } } },
@@ -91,30 +92,9 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-type BlockInfo = { code: string; fn: any };
+type BlockInfo = { code: string; fn: any; customInput: boolean };
 type ValueType = "string" | "number" | "imagedata" | "mask";
 type IOPortInfo = { valueType: ValueType };
-
-function wrapInputCustomRenderer<T, Rest>(
-  Renderer: (
-    params: {
-      value?: T;
-      setValue: (value: T) => void;
-    } & Rest
-  ) => JSX.Element,
-  customValuesRef: React.RefObject<{ [key: string]: any }>,
-  params: Rest
-) {
-  return (block: Block<BlockInfo, IOPortInfo>) => {
-    return (
-      <Renderer
-        value={customValuesRef.current[block.uuid]}
-        setValue={value => (customValuesRef.current[block.uuid] = value)}
-        {...params}
-      />
-    );
-  };
-}
 
 const templatesInitial: (
   customValuesRef: React.RefObject<{ [key: string]: any }>
@@ -123,6 +103,7 @@ const templatesInitial: (
     {
       type: "CameraInput",
       hardcoded: true,
+      customInput: false,
       code: "",
       inputs: [],
       outputs: [
@@ -136,11 +117,16 @@ const templatesInitial: (
     {
       type: "NumericInput",
       hardcoded: true,
+      customInput: true,
       code: "",
-      customRenderer: wrapInputCustomRenderer(
-        NumberInputHelper,
-        customValueRef,
-        { minValue: 0, maxValue: 5, step: 0.01 }
+      customRenderer: (block: Block<BlockInfo, IOPortInfo>) => (
+        <NumberInputHelper
+          customValueRef={customValueRef}
+          block={block}
+          minValue={0}
+          maxValue={30}
+          step={0.01}
+        />
       ),
       inputs: [],
       outputs: [
@@ -152,8 +138,31 @@ const templatesInitial: (
       ],
     },
     {
+      type: "UVInput",
+      hardcoded: true,
+      customInput: true,
+      code: "",
+      customRenderer: (block: Block<BlockInfo, IOPortInfo>) => (
+        <UVInputHelper customValueRef={customValueRef} block={block} />
+      ),
+      inputs: [],
+      outputs: [
+        {
+          label: "U",
+          type: "output" as const,
+          valueType: "number" as const,
+        },
+        {
+          label: "V",
+          type: "output" as const,
+          valueType: "number" as const,
+        },
+      ],
+    },
+    {
       type: "DisplayFrame",
       hardcoded: true,
+      customInput: false,
       code: "",
       inputs: [
         {
@@ -167,6 +176,7 @@ const templatesInitial: (
     {
       type: "RandomNumber",
       hardcoded: false,
+      customInput: false,
       code:
         "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
       inputs: [],
@@ -181,6 +191,7 @@ const templatesInitial: (
     {
       type: "Lightness",
       hardcoded: false,
+      customInput: false,
       code: `function Lightness({
       Amount,
       Frame
@@ -228,7 +239,8 @@ const templatesInitial: (
     {
       type: "RGBtoYUV",
       hardcoded: false,
-      code: `function RGBtoYUV({ Frame }: { YUVFrame: ImageData }) {
+      customInput: false,
+      code: `function RGBtoYUV({ Frame }: { Frame: ImageData }):{ YUVFrame: ImageData } {
       // Copia i pixel dell'immagine
       const newData = new ImageData(Frame.width, Frame.height);
     
@@ -269,13 +281,10 @@ const templatesInitial: (
       ],
     },
     {
-      type: "ChromaKey",
+      type: "ChromaKeyUV",
       hardcoded: false,
-      code: `const pU = 130;
-    const pV = 162;
-    const radius = 5;
-    
-    function ChromaKey({ YUVFrame }: { YUVFrame: ImageData }): { Mask: {data:boolean[];width:number;height:number} } {
+      customInput: false,
+      code: `function ChromaKeyUV({ YUVFrame, pU,pV,radius }: { YUVFrame: ImageData;pU:number;pV:number;radius:number }): { Mask: {data:boolean[];width:number;height:number} } {
       // Crea una maschera vuota
       const data = new Array<boolean>(YUVFrame.width * YUVFrame.height).fill(false);
     
@@ -306,6 +315,21 @@ const templatesInitial: (
           type: "input" as const,
           valueType: "imagedata" as const,
         },
+        {
+          label: "pU",
+          type: "input" as const,
+          valueType: "number" as const,
+        },
+        {
+          label: "pV",
+          type: "input" as const,
+          valueType: "number" as const,
+        },
+        {
+          label: "radius",
+          type: "input" as const,
+          valueType: "number" as const,
+        },
       ],
       outputs: [
         {
@@ -318,6 +342,7 @@ const templatesInitial: (
     {
       type: "Hough",
       hardcoded: false,
+      customInput: false,
       code: `const a_step = 0.1;
     const r_step = 4.0;
     const max_r = 400.0;
@@ -447,7 +472,20 @@ export default function App() {
   }
 
   const [blocks, setBlocks] = useState<Block<BlockInfo, IOPortInfo>[]>([]);
+  function reHydrateBlocks(blocks: Block<BlockInfo, IOPortInfo>[]) {
+    const nBlocks = blocks.map(b => ({
+      ...b,
+      ...templates.find(t => t.type === b.type),
+      inputs: b.inputs,
+      outputs: b.outputs,
+      fn: getFunctionFromCode(b.code),
+    }));
+    setBlocks(nBlocks);
+  }
+  usePersistState(blocks, reHydrateBlocks, "blocks");
+
   const [links, setLinks] = useState<Link<IOPortInfo>[]>([]);
+  usePersistState(links, setLinks, "links");
 
   const [selectedBlockID, setSelectedBlockID] = useState(null);
   const selectedBlock = blocks.find(b => b.uuid === selectedBlockID);
@@ -505,9 +543,9 @@ export default function App() {
       if (block.hardcoded || block.fn) {
         if (block.type === "CameraInput") {
           tempResultsRef.current[block.uuid] = { Frame: imgData };
-        } else if (block.type === "NumericInput") {
+        } else if (block.customInput) {
           tempResultsRef.current[block.uuid] = {
-            Number: customValueRef.current[block.uuid],
+            ...customValueRef.current[block.uuid],
           };
         } else if (block.type === "DisplayFrame") {
           tempResultsRef.current[block.uuid] = { Frame: params["Frame"] };
@@ -574,7 +612,7 @@ export default function App() {
   );
 
   // To allow deferred IO Decoration update
-  usePeriodicRerender(100);
+  usePeriodicRerender(300);
 
   return (
     <>

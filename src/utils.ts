@@ -32,3 +32,26 @@ export function usePeriodicRerender(timeout: number) {
   const forceUpdate = useState(0)[1];
   useInterval(() => forceUpdate(i => i + 1), timeout);
 }
+
+export function usePersistState<T>(value: T, setter: (value: T) => void, key: string) {
+  useEffect(() => {
+    const persistedString = window.localStorage.getItem(key);
+    if (persistedString) {
+      try {
+        const persistedJSON = JSON.parse(persistedString);
+        setter(persistedJSON);
+      } catch (e) {
+        console.error("Error deserializing", key, e);
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const persistedString = JSON.stringify(value);
+      window.localStorage.setItem(key, persistedString)
+    } catch (e) {
+      console.error("Error serializing", key, e);
+    }
+  }, [value])
+}

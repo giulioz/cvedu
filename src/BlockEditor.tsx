@@ -132,6 +132,9 @@ const useStyles = makeStyles((theme: Theme) => ({
     borderTop: "1px solid rgba(255, 255, 255, 0.12)",
     padding: 2,
   },
+  custom: {
+    borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+  },
   output: {
     textAlign: "right",
   },
@@ -350,7 +353,7 @@ function BlockRender<TBlockInfo, TPortInfo>({
           {...bindIO(output, true)}
         />
       ))}
-      {customRenderer && <div className={classes.io}>{customRenderer(block)}</div>}
+      {customRenderer && <div className={classes.custom}>{customRenderer(block)}</div>}
     </animated.div>
   );
 }
