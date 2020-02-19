@@ -62,7 +62,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export default function CodeEditor({
+export default React.memo(function CodeEditor({
   initialCode,
   onRun,
   onError,
@@ -195,4 +195,4 @@ export default function CodeEditor({
       </div>
     </div>
   );
-}
+});

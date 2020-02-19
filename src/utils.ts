@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function uuidv4() {
-  return "xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+  return "xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx".replace(/[xy]/g, function(c) {
     const r = (Math.random() * 16) | 0,
       v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -31,9 +31,22 @@ export function useInterval(callback: () => void, delay: number) {
 export function usePeriodicRerender(timeout: number) {
   const forceUpdate = useState(0)[1];
   useInterval(() => forceUpdate(i => i + 1), timeout);
+  return forceUpdate;
 }
 
-export function usePersistState<T>(value: T, setter: (value: T) => void, key: string) {
+export function useThrottle(handlerFn: () => void, ms: number) {
+  useEffect(() => {
+    const timeout = setTimeout(handlerFn, ms);
+    return () => clearTimeout(timeout);
+  }, [handlerFn]);
+}
+
+export function usePersistState<T>(
+  value: T,
+  setter: (value: T) => void,
+  key: string,
+  timeout = 1000
+) {
   useEffect(() => {
     const persistedString = window.localStorage.getItem(key);
     if (persistedString) {
@@ -44,14 +57,15 @@ export function usePersistState<T>(value: T, setter: (value: T) => void, key: st
         console.error("Error deserializing", key, e);
       }
     }
-  }, [])
+  }, []);
 
-  useEffect(() => {
+  const handler = useCallback(() => {
     try {
       const persistedString = JSON.stringify(value);
-      window.localStorage.setItem(key, persistedString)
+      window.localStorage.setItem(key, persistedString);
     } catch (e) {
       console.error("Error serializing", key, e);
     }
-  }, [value])
+  }, [key, value]);
+  useThrottle(handler, timeout);
 }

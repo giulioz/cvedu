@@ -29,7 +29,7 @@ export function useWebcam() {
 
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
-          audio: false
+          audio: false,
         });
         el.srcObject = mediaStream;
 

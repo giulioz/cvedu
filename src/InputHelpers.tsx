@@ -31,13 +31,17 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
   BlockInfo,
   IOPortInfo
 >({
-  customValueRef,
+  customValues,
+  setCustomValues,
   block,
   minValue,
   maxValue,
   step,
 }: {
-  customValueRef: React.RefObject<{ [key: string]: any }>;
+  customValues: { [key: string]: any };
+  setCustomValues: (
+    fn: (old: { [key: string]: any }) => { [key: string]: any }
+  ) => void;
   block: Block<BlockInfo, IOPortInfo>;
   minValue: number;
   maxValue: number;
@@ -45,9 +49,8 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
 }) {
   const classes = useStyles({});
 
-  const value = customValueRef.current[block.uuid]
-    ? customValueRef.current[block.uuid].Number
-    : 0;
+  console.log(block.uuid, customValues[block.uuid]);
+  const value = customValues[block.uuid] ? customValues[block.uuid].Number : 0;
 
   const [tempValue, setTempValue] = useState(String(value));
 
@@ -56,12 +59,12 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
 
     const n = parseFloat(s);
     if (!isNaN(n)) {
-      customValueRef.current[block.uuid] = { Number: n };
+      setCustomValues(old => ({ ...old, [block.uuid]: { Number: n } }));
     }
   }
 
   function handleSliderChange(e: React.ChangeEvent<{}>, n: number) {
-    customValueRef.current[block.uuid] = { Number: n };
+    setCustomValues(old => ({ ...old, [block.uuid]: { Number: n } }));
     setTempValue(String(n));
 
     e.stopPropagation();

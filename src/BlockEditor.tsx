@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import { useSpring, animated, config as springConfig } from "react-spring";
 import { useDrag } from "react-use-gesture";
 import { Theme, Button, IconButton } from "@material-ui/core";
@@ -29,7 +29,10 @@ export type BlockTemplate<
   code: string;
   inputs: TPortType[];
   outputs: TPortType[];
-  customRenderer?: (block: Block<TBlockInfo, TPortInfo>) => JSX.Element;
+  customRenderer?: (
+    block: Block<TBlockInfo, TPortInfo>,
+    customParams: any
+  ) => JSX.Element;
 } & TBlockInfo;
 
 export type PosObject = { x: number; y: number };
@@ -39,7 +42,7 @@ export type Block<TBlockInfo, TPortInfo> = BlockTemplate<
   IOPortInst<TPortInfo>
 > & {
   uuid: string;
-} & PosObject;
+};
 
 export type Link<TPortInfo> = {
   src: IOPortInst<TPortInfo>;
@@ -146,47 +149,52 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-const IOPortRender = React.forwardRef(function<T>(
-  {
-    renderIODecoration,
-    port,
-    ...rest
-  }: {
-    renderIODecoration: (port: IOPortInst<T>) => JSX.Element;
-    port: IOPort<T>;
-  },
-  ref: React.Ref<HTMLDivElement>
-) {
-  const classes = useStyles({});
+const IOPortRender = React.memo(
+  React.forwardRef(function<T>(
+    {
+      renderIODecoration,
+      port,
+      ...rest
+    }: {
+      renderIODecoration: (port: IOPortInst<T>) => JSX.Element;
+      port: IOPort<T>;
+    },
+    ref: React.Ref<HTMLDivElement>
+  ) {
+    const classes = useStyles({});
 
-  return (
-    <div
-      id={
-        port.ut === "inst"
-          ? "block-port-" + serializeIOPortInst(port)
-          : undefined
-      }
-      className={`${classes.io} ${classes[port.type]}`}
-      ref={ref}
-      {...rest}
-    >
-      {port.type === "input" && (
-        <>
-          {renderIODecoration(port as IOPortInst<T>)}
-          {"<"} {port.label}
-        </>
-      )}
-      {port.type === "output" && (
-        <>
-          {port.label} {">"}
-          {renderIODecoration(port as IOPortInst<T>)}
-        </>
-      )}
-    </div>
-  );
-});
+    return (
+      <div
+        id={
+          port.ut === "inst"
+            ? "block-port-" + serializeIOPortInst(port)
+            : undefined
+        }
+        className={`${classes.io} ${classes[port.type]}`}
+        ref={ref}
+        {...rest}
+      >
+        {port.type === "input" && (
+          <>
+            {renderIODecoration(port as IOPortInst<T>)}
+            {"<"} {port.label}
+          </>
+        )}
+        {port.type === "output" && (
+          <>
+            {port.label} {">"}
+            {renderIODecoration(port as IOPortInst<T>)}
+          </>
+        )}
+      </div>
+    );
+  })
+);
 
-function BlockTemplateRender<TBlockInfo, TPortInfo>({
+const BlockTemplateRender = React.memo(function BlockTemplateRender<
+  TBlockInfo,
+  TPortInfo
+>({
   type,
   onMove = () => {},
   onMoveStart = () => {},
@@ -195,13 +203,13 @@ function BlockTemplateRender<TBlockInfo, TPortInfo>({
   outputs = [],
 }: {
   onMove(point: PosObject): void;
-  onMoveStart(point: PosObject): void;
+  onMoveStart(type: string, point: PosObject): void;
   onMoveEnd(): void;
 } & BlockTemplate<TBlockInfo, TPortInfo>) {
   const classes = useStyles({});
 
   const bind = useDrag(({ xy: [x, y], first, last }) => {
-    if (first) onMoveStart({ x, y });
+    if (first) onMoveStart(type, { x, y });
     if (last) onMoveEnd();
     onMove({ x, y });
   });
@@ -227,7 +235,7 @@ function BlockTemplateRender<TBlockInfo, TPortInfo>({
       ))}
     </div>
   );
-}
+});
 
 function getIOPortPos(element: HTMLElement, right: boolean) {
   const rect = element.getBoundingClientRect();
@@ -237,7 +245,9 @@ function getIOPortPos(element: HTMLElement, right: boolean) {
   };
 }
 
-function BlockRender<TBlockInfo, TPortInfo>({
+const BlockRender = React.memo(function BlockRender({
+  x,
+  y,
   selected = false,
   onSelect = () => {},
   onMove = () => {},
@@ -248,21 +258,25 @@ function BlockRender<TBlockInfo, TPortInfo>({
   onRest = () => {},
   renderIODecoration,
   block,
+  customParams,
 }: {
+  x: number;
+  y: number;
   selected: boolean;
-  onSelect(): void;
-  onMove(point: PosObject): void;
-  onDelete(): void;
+  onSelect(uuid: string): void;
+  onMove(uuid: string, point: PosObject): void;
+  onDelete(uuid: string): void;
   onDragIO(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOStart(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOEnd(src: IOPortInst<{}>, dst: IOPortInst<{}> | null): void;
   onRest(): void;
-  renderIODecoration: (port: IOPortInst<TPortInfo>) => JSX.Element;
-  block: Block<TBlockInfo, TPortInfo>;
+  renderIODecoration: (port: IOPortInst<any>) => JSX.Element;
+  block: Block<any, any>;
+  customParams: any;
 }) {
   const classes = useStyles({});
 
-  const { x, y, type, inputs, outputs, customRenderer } = block;
+  const { type, inputs, outputs, customRenderer, uuid } = block;
 
   const { px, py } = useSpring({
     px: x || 0,
@@ -277,15 +291,15 @@ function BlockRender<TBlockInfo, TPortInfo>({
     if (first) firstTimeRef.current = time;
 
     if (time - firstTimeRef.current < 100) {
-      if (last) onSelect();
+      if (last) onSelect(uuid);
     } else {
       if (divRef.current && (x === undefined || y === undefined)) {
         const rect = divRef.current.getBoundingClientRect();
         const x = rect.x + rect.width / 2;
         const y = rect.y;
-        onMove({ x: px + x, y: py + y });
+        onMove(uuid, { x: px + x, y: py + y });
       } else {
-        onMove({ x: px + x, y: py + y });
+        onMove(uuid, { x: px + x, y: py + y });
       }
     }
   });
@@ -329,16 +343,21 @@ function BlockRender<TBlockInfo, TPortInfo>({
         top: py,
       }}
     >
-      <div className={classes.topbar}>
-        <div className={classes.title}>{type}</div>
-        <IconButton onClick={onDelete} size="small">
-          <CloseIcon />
-        </IconButton>
-      </div>
+      {useMemo(
+        () => (
+          <div className={classes.topbar}>
+            <div className={classes.title}>{type}</div>
+            <IconButton onClick={() => onDelete(uuid)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </div>
+        ),
+        [type, uuid, onDelete]
+      )}
       {inputs.map(input => (
         <IOPortRender
           renderIODecoration={renderIODecoration}
-          port={{ ...input, ut: "inst" as const }}
+          port={{ ...input, ut: "inst" as const } as any}
           key={serializeIOPortInst(input)}
           ref={updateIORef(input) as any}
           // {...bindIO(input, false)}
@@ -353,12 +372,16 @@ function BlockRender<TBlockInfo, TPortInfo>({
           {...bindIO(output, true)}
         />
       ))}
-      {customRenderer && <div className={classes.custom}>{customRenderer(block)}</div>}
+      {customRenderer && (
+        <div className={classes.custom}>
+          {customRenderer(block, customParams)}
+        </div>
+      )}
     </animated.div>
   );
-}
+});
 
-function LinkRender({
+const LinkRender = React.memo(function LinkRender({
   ax = 0,
   ay = 0,
   bx = 0,
@@ -367,7 +390,7 @@ function LinkRender({
   markerWidth = 2,
   markerHeight = 4,
   onDoubleClick = () => {},
-}) {
+}: any) {
   const classes = useStyles({});
 
   const x = Math.min(ax, bx);
@@ -420,12 +443,30 @@ function LinkRender({
       />
     </svg>
   );
+});
+
+function searchTrueIOPort<TBlockInfo, TPortInfo>(
+  port: IOPortInst<{}>,
+  blocks: Block<TBlockInfo, TPortInfo>[]
+) {
+  const block = blocks.find(b => b.uuid === port.blockUuid);
+  if (block) {
+    const input =
+      port.type === "input" && block.inputs.find(i => i.label === port.label);
+    const output =
+      port.type === "output" && block.outputs.find(i => i.label === port.label);
+    return input || output;
+  } else {
+    return null;
+  }
 }
 
 export default function BlockEditor<TBlockInfo, TPortInfo>({
   templates,
   blocks,
   setBlocks,
+  blocksPos,
+  setBlocksPos,
   links,
   setLinks,
   getUuid = uuidv4,
@@ -433,6 +474,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   selectedBlock = null,
   onSelectBlock = () => {},
   renderIODecoration = () => null,
+  customParams,
 }: {
   templates: BlockTemplate<TBlockInfo, TPortInfo>[];
   blocks: Block<TBlockInfo, TPortInfo>[];
@@ -441,6 +483,16 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
       blocks: Block<TBlockInfo, TPortInfo>[]
     ) => Block<TBlockInfo, TPortInfo>[]
   ): void;
+  blocksPos: { uuid: string; x: number; y: number }[];
+  setBlocksPos(
+    fn: (
+      blocksPos: {
+        uuid: string;
+        x: number;
+        y: number;
+      }[]
+    ) => { uuid: string; x: number; y: number }[]
+  ): void;
   links: Link<TPortInfo>[];
   setLinks(fn: (links: Link<TPortInfo>[]) => Link<TPortInfo>[]): void;
   getUuid?(): string;
@@ -448,81 +500,79 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   selectedBlock: string;
   onSelectBlock(fn: (selected: string) => string): void;
   renderIODecoration?: (port: IOPortInst<TPortInfo>) => JSX.Element;
+  customParams: any;
 }) {
   const classes = useStyles({});
 
-  function searchTrueIOPort(port: IOPortInst<{}>) {
-    const block = blocks.find(b => b.uuid === port.blockUuid);
-    if (block) {
-      const input =
-        port.type === "input" && block.inputs.find(i => i.label === port.label);
-      const output =
-        port.type === "output" &&
-        block.outputs.find(i => i.label === port.label);
-      return input || output;
-    } else {
-      return null;
-    }
-  }
-
   const [draggingTemplate, setDraggingTemplate] = useState(null);
-  const handleMoveTemplateStart = (type: string) => (pos: {
-    x: number;
-    y: number;
-  }) => {
-    const uuid = getUuid();
-    const template = templates.find(t => t.type === type);
+  const handleMoveTemplateStart = useCallback(
+    (type: string, pos: { x: number; y: number }) => {
+      const uuid = getUuid();
+      const template = templates.find(t => t.type === type);
 
-    setBlocks(blocks => {
-      const newBlock: Block<TBlockInfo, TPortInfo> = {
-        ...template,
-        ...pos,
-        uuid,
-        inputs: template.inputs.map(e => ({
-          ...e,
-          blockUuid: uuid,
-          blockName: template.type,
-          ut: "inst",
-        })),
-        outputs: template.outputs.map(e => ({
-          ...e,
-          blockUuid: uuid,
-          blockName: template.type,
-          ut: "inst",
-        })),
-      };
+      setBlocks(blocks => {
+        const newBlock: Block<TBlockInfo, TPortInfo> = {
+          ...template,
+          uuid,
+          inputs: template.inputs.map(e => ({
+            ...e,
+            blockUuid: uuid,
+            blockName: template.type,
+            ut: "inst",
+          })),
+          outputs: template.outputs.map(e => ({
+            ...e,
+            blockUuid: uuid,
+            blockName: template.type,
+            ut: "inst",
+          })),
+        };
 
-      return [...blocks, newBlock];
-    });
+        return [...blocks, newBlock];
+      });
 
-    setDraggingTemplate(uuid);
-  };
-  function handleMoveTemplate(pos: PosObject) {
-    return setBlocks(blocks =>
-      blocks.map(b => (b.uuid === draggingTemplate ? { ...b, ...pos } : b))
+      setBlocksPos(poss => [...poss, { uuid, x: pos.x, y: pos.y }]);
+
+      setDraggingTemplate(uuid);
+    },
+    [templates]
+  );
+  const handleMoveTemplate = useCallback(
+    (pos: PosObject) => {
+      return setBlocksPos(poss =>
+        poss.map(b => (b.uuid === draggingTemplate ? { ...b, ...pos } : b))
+      );
+    },
+    [draggingTemplate]
+  );
+  const handleMoveTemplateEnd = useCallback(
+    () => setDraggingTemplate(null),
+    []
+  );
+
+  const handleMoveBlock = useCallback((uuid: string, pos: PosObject) => {
+    setBlocksPos(poss =>
+      poss.map(block => (block.uuid === uuid ? { ...block, ...pos } : block))
     );
-  }
-  const handleMoveTemplateEnd = () => setDraggingTemplate(null);
-
-  const handleMoveBlock = (uuid: string) => (pos: PosObject) => {
-    setBlocks(blocks =>
-      blocks.map(block => (block.uuid === uuid ? { ...block, ...pos } : block))
-    );
-  };
-  const handleSelectBlock = (uuid: string) => () => {
+  }, []);
+  const handleSelectBlock = useCallback((uuid: string) => {
     onSelectBlock(selected => (selected === uuid ? null : uuid));
-  };
-  const handleDeleteBlock = (uuid: string) => () => {
+  }, []);
+  const handleDeleteBlock = useCallback((uuid: string) => {
     setBlocks(blocks => blocks.filter(block => block.uuid !== uuid));
-  };
+    setBlocksPos(poss => poss.filter(block => block.uuid !== uuid));
+  }, []);
 
-  function handleDragIOStart(src: IOPortInst<TPortInfo>, { x, y }) {
-    setLinks(links => [
-      { src, dst: null, ax: x, ay: y, bx: x, by: y },
-      ...links,
-    ]);
-  }
-  function handleDragIO(src: IOPortInst<TPortInfo>, { x, y }) {
+  const handleDragIOStart = useCallback(
+    (src: IOPortInst<TPortInfo>, { x, y }) => {
+      setLinks(links => [
+        { src, dst: null, ax: x, ay: y, bx: x, by: y },
+        ...links,
+      ]);
+    },
+    []
+  );
+  const handleDragIO = useCallback((src: IOPortInst<TPortInfo>, { x, y }) => {
     setLinks(links =>
       links.map(l =>
         serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
@@ -531,77 +581,89 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
           : l
       )
     );
-  }
-  function handleDragIOEnd(
-    src: IOPortInst<TPortInfo>,
-    dst: IOPortInst<TPortInfo> | null
-  ) {
-    if (dst) {
-      setLinks(links =>
-        links.map(l =>
-          serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
-          l.dst === null
-            ? { src: searchTrueIOPort(src), dst: searchTrueIOPort(dst) }
-            : l
-        )
-      );
-    } else {
+  }, []);
+  const handleDragIOEnd = useCallback(
+    (src: IOPortInst<TPortInfo>, dst: IOPortInst<TPortInfo> | null) => {
+      if (dst) {
+        setLinks(links =>
+          links.map(l =>
+            serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
+            l.dst === null
+              ? {
+                  src: searchTrueIOPort(src, blocks),
+                  dst: searchTrueIOPort(dst, blocks),
+                }
+              : l
+          )
+        );
+      } else {
+        setLinks(links =>
+          links.filter(
+            l =>
+              !(
+                serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
+                l.dst === null
+              )
+          )
+        );
+      }
+    },
+    [blocks]
+  );
+
+  const handleRemoveLink = useCallback(
+    (link: Link<TPortInfo>) => () => {
       setLinks(links =>
         links.filter(
           l =>
             !(
-              serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
-              l.dst === null
+              serializeIOPortInst(link.src) === serializeIOPortInst(l.src) &&
+              serializeIOPortInst(link.dst) === serializeIOPortInst(l.dst)
             )
         )
       );
-    }
-  }
+    },
+    []
+  );
 
-  const handleRemoveLink = (link: Link<TPortInfo>) => () => {
-    setLinks(links =>
-      links.filter(
-        l =>
-          !(
-            serializeIOPortInst(link.src) === serializeIOPortInst(l.src) &&
-            serializeIOPortInst(link.dst) === serializeIOPortInst(l.dst)
-          )
-      )
-    );
-  };
+  const [forceUpdate, setForceUpdate] = useState(0);
+  const linksWithPosGen = useCallback(
+    () =>
+      links.map(link => {
+        if (link.dst) {
+          const elStart = document.getElementById(
+            "block-port-" + serializeIOPortInst(link.src)
+          );
+          const elEnd = document.getElementById(
+            "block-port-" + serializeIOPortInst(link.dst)
+          );
 
-  const linksWithPosGen = () =>
-    links.map(link => {
-      if (link.dst) {
-        const elStart = document.getElementById(
-          "block-port-" + serializeIOPortInst(link.src)
-        );
-        const elEnd = document.getElementById(
-          "block-port-" + serializeIOPortInst(link.dst)
-        );
+          if (elStart && elEnd) {
+            const posStart = getIOPortPos(elStart, true);
+            const posEnd = getIOPortPos(elEnd, false);
 
-        if (elStart && elEnd) {
-          const posStart = getIOPortPos(elStart, true);
-          const posEnd = getIOPortPos(elEnd, false);
+            return {
+              ...link,
+              ax: posStart.x,
+              ay: posStart.y,
+              bx: posEnd.x,
+              by: posEnd.y,
+            };
+          }
 
-          return {
-            ...link,
-            ax: posStart.x,
-            ay: posStart.y,
-            bx: posEnd.x,
-            by: posEnd.y,
-          };
+          return link;
         }
 
         return link;
-      }
-
-      return link;
-    });
-  const linksWithPos = linksWithPosGen();
-
-  const setForceUpdate = useState(0)[1];
-  function updateLinkPos() {
+      }),
+    [links, blocksPos, forceUpdate]
+  );
+  const linksWithPos = useMemo(() => linksWithPosGen(), [
+    linksWithPosGen,
+    blocksPos,
+    forceUpdate,
+  ]);
+  const updateLinkPos = useCallback(() => {
     const newLinksWithPos = linksWithPosGen();
     const hasToUpdate = newLinksWithPos.some(
       (link, i) =>
@@ -614,7 +676,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
     if (hasToUpdate) {
       setForceUpdate(i => i + 1);
     }
-  }
+  }, [links, linksWithPos, linksWithPosGen, blocksPos, forceUpdate]);
 
   return (
     <div className={classes.root}>
@@ -637,7 +699,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
               {...block}
               key={block.type}
               onMove={handleMoveTemplate}
-              onMoveStart={handleMoveTemplateStart(block.type)}
+              onMoveStart={handleMoveTemplateStart}
               onMoveEnd={handleMoveTemplateEnd}
             />
           ))}
@@ -653,21 +715,28 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         </Button> */}
       </div>
 
-      {blocks.map((block: Block<TBlockInfo, TPortInfo>) => (
-        <BlockRender<TBlockInfo, TPortInfo>
-          key={block.uuid}
-          selected={selectedBlock === block.uuid}
-          onSelect={handleSelectBlock(block.uuid)}
-          onMove={handleMoveBlock(block.uuid)}
-          onDelete={handleDeleteBlock(block.uuid)}
-          onDragIOStart={handleDragIOStart}
-          onDragIO={handleDragIO}
-          onDragIOEnd={handleDragIOEnd}
-          onRest={updateLinkPos}
-          renderIODecoration={renderIODecoration}
-          block={block}
-        />
-      ))}
+      {blocks.map((block: Block<TBlockInfo, TPortInfo>) => {
+        const { x, y } = blocksPos.find(p => p.uuid === block.uuid);
+
+        return (
+          <BlockRender
+            x={x}
+            y={y}
+            key={block.uuid}
+            selected={selectedBlock === block.uuid}
+            onSelect={handleSelectBlock}
+            onMove={handleMoveBlock}
+            onDelete={handleDeleteBlock}
+            onDragIOStart={handleDragIOStart}
+            onDragIO={handleDragIO}
+            onDragIOEnd={handleDragIOEnd}
+            onRest={updateLinkPos}
+            renderIODecoration={renderIODecoration}
+            block={block}
+            customParams={customParams}
+          />
+        );
+      })}
     </div>
   );
 }

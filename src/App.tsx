@@ -16,6 +16,7 @@ import {
   DialogTitle,
   Button,
 } from "@material-ui/core";
+import { useAutoMemo, useAutoCallback } from "hooks.macro";
 
 import { usePeriodicRerender, usePersistState } from "./utils";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
@@ -96,103 +97,112 @@ type BlockInfo = { code: string; fn: any; customInput: boolean };
 type ValueType = "string" | "number" | "imagedata" | "mask";
 type IOPortInfo = { valueType: ValueType };
 
-const templatesInitial: (
-  customValuesRef: React.RefObject<{ [key: string]: any }>
-) => BlockTemplate<BlockInfo, IOPortInfo>[] = customValueRef =>
-  [
-    {
-      type: "CameraInput",
-      hardcoded: true,
-      customInput: false,
-      code: "",
-      inputs: [],
-      outputs: [
-        {
-          label: "Frame",
-          type: "output" as const,
-          valueType: "imagedata" as const,
-        },
-      ],
-    },
-    {
-      type: "NumericInput",
-      hardcoded: true,
-      customInput: true,
-      code: "",
-      customRenderer: (block: Block<BlockInfo, IOPortInfo>) => (
-        <NumberInputHelper
-          customValueRef={customValueRef}
-          block={block}
-          minValue={0}
-          maxValue={30}
-          step={0.01}
-        />
-      ),
-      inputs: [],
-      outputs: [
-        {
-          label: "Number",
-          type: "output" as const,
-          valueType: "number" as const,
-        },
-      ],
-    },
-    {
-      type: "UVInput",
-      hardcoded: true,
-      customInput: true,
-      code: "",
-      customRenderer: (block: Block<BlockInfo, IOPortInfo>) => (
-        <UVInputHelper customValueRef={customValueRef} block={block} />
-      ),
-      inputs: [],
-      outputs: [
-        {
-          label: "U",
-          type: "output" as const,
-          valueType: "number" as const,
-        },
-        {
-          label: "V",
-          type: "output" as const,
-          valueType: "number" as const,
-        },
-      ],
-    },
-    {
-      type: "DisplayFrame",
-      hardcoded: true,
-      customInput: false,
-      code: "",
-      inputs: [
-        {
-          label: "Frame",
-          type: "input" as const,
-          valueType: "imagedata" as const,
-        },
-      ],
-      outputs: [],
-    },
-    {
-      type: "RandomNumber",
-      hardcoded: false,
-      customInput: false,
-      code:
-        "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
-      inputs: [],
-      outputs: [
-        {
-          label: "Number",
-          type: "output" as const,
-          valueType: "number" as const,
-        },
-      ],
-    },
-    {
-      type: "Lightness",
-      hardcoded: false,
-      customInput: false,
-      code: `function Lightness({
+const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
+  {
+    type: "CameraInput",
+    hardcoded: true,
+    customInput: false,
+    code: "",
+    inputs: [],
+    outputs: [
+      {
+        label: "Frame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+  },
+  {
+    type: "NumericInput",
+    hardcoded: true,
+    customInput: true,
+    code: "",
+    customRenderer: (
+      block: Block<BlockInfo, IOPortInfo>,
+      {
+        customValues,
+        setCustomValues,
+      }: {
+        customValues: { [key: string]: any };
+        setCustomValues: (
+          fn: (old: { [key: string]: any }) => { [key: string]: any }
+        ) => void;
+      }
+    ) => (
+      <NumberInputHelper
+        customValues={customValues}
+        setCustomValues={setCustomValues}
+        block={block}
+        minValue={0}
+        maxValue={30}
+        step={0.01}
+      />
+    ),
+    inputs: [],
+    outputs: [
+      {
+        label: "Number",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+    ],
+  },
+  // {
+  //   type: "UVInput",
+  //   hardcoded: true,
+  //   customInput: true,
+  //   code: "",
+  //   customRenderer: (block: Block<BlockInfo, IOPortInfo>) => (
+  //     <UVInputHelper customValues={customValues} block={block} />
+  //   ),
+  //   inputs: [],
+  //   outputs: [
+  //     {
+  //       label: "U",
+  //       type: "output" as const,
+  //       valueType: "number" as const,
+  //     },
+  //     {
+  //       label: "V",
+  //       type: "output" as const,
+  //       valueType: "number" as const,
+  //     },
+  //   ],
+  // },
+  {
+    type: "DisplayFrame",
+    hardcoded: true,
+    customInput: false,
+    code: "",
+    inputs: [
+      {
+        label: "Frame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+    outputs: [],
+  },
+  {
+    type: "RandomNumber",
+    hardcoded: false,
+    customInput: false,
+    code:
+      "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
+    inputs: [],
+    outputs: [
+      {
+        label: "Number",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+    ],
+  },
+  {
+    type: "Lightness",
+    hardcoded: false,
+    customInput: false,
+    code: `function Lightness({
       Amount,
       Frame
     }: {
@@ -216,31 +226,31 @@ const templatesInitial: (
     
       return { Frame: newData };
     }`,
-      inputs: [
-        {
-          label: "Amount",
-          type: "input" as const,
-          valueType: "number" as const,
-        },
-        {
-          label: "Frame",
-          type: "input" as const,
-          valueType: "imagedata" as const,
-        },
-      ],
-      outputs: [
-        {
-          label: "Frame",
-          type: "output" as const,
-          valueType: "imagedata" as const,
-        },
-      ],
-    },
-    {
-      type: "RGBtoYUV",
-      hardcoded: false,
-      customInput: false,
-      code: `function RGBtoYUV({ Frame }: { Frame: ImageData }):{ YUVFrame: ImageData } {
+    inputs: [
+      {
+        label: "Amount",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "Frame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "Frame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+  },
+  {
+    type: "RGBtoYUV",
+    hardcoded: false,
+    customInput: false,
+    code: `function RGBtoYUV({ Frame }: { Frame: ImageData }):{ YUVFrame: ImageData } {
       // Copia i pixel dell'immagine
       const newData = new ImageData(Frame.width, Frame.height);
     
@@ -265,26 +275,26 @@ const templatesInitial: (
     
       return { YUVFrame: newData };
     }`,
-      inputs: [
-        {
-          label: "Frame",
-          type: "input" as const,
-          valueType: "imagedata" as const,
-        },
-      ],
-      outputs: [
-        {
-          label: "YUVFrame",
-          type: "output" as const,
-          valueType: "imagedata" as const,
-        },
-      ],
-    },
-    {
-      type: "ChromaKeyUV",
-      hardcoded: false,
-      customInput: false,
-      code: `function ChromaKeyUV({ YUVFrame, pU,pV,radius }: { YUVFrame: ImageData;pU:number;pV:number;radius:number }): { Mask: {data:boolean[];width:number;height:number} } {
+    inputs: [
+      {
+        label: "Frame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "YUVFrame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
+      },
+    ],
+  },
+  {
+    type: "ChromaKeyUV",
+    hardcoded: false,
+    customInput: false,
+    code: `function ChromaKeyUV({ YUVFrame, pU,pV,radius }: { YUVFrame: ImageData;pU:number;pV:number;radius:number }): { Mask: {data:boolean[];width:number;height:number} } {
       // Crea una maschera vuota
       const data = new Array<boolean>(YUVFrame.width * YUVFrame.height).fill(false);
     
@@ -309,41 +319,41 @@ const templatesInitial: (
     
       return { Mask:{data,width:YUVFrame.width,height:YUVFrame.height} };
     }`,
-      inputs: [
-        {
-          label: "YUVFrame",
-          type: "input" as const,
-          valueType: "imagedata" as const,
-        },
-        {
-          label: "pU",
-          type: "input" as const,
-          valueType: "number" as const,
-        },
-        {
-          label: "pV",
-          type: "input" as const,
-          valueType: "number" as const,
-        },
-        {
-          label: "radius",
-          type: "input" as const,
-          valueType: "number" as const,
-        },
-      ],
-      outputs: [
-        {
-          label: "Mask",
-          type: "output" as const,
-          valueType: "mask" as const,
-        },
-      ],
-    },
-    {
-      type: "Hough",
-      hardcoded: false,
-      customInput: false,
-      code: `const a_step = 0.1;
+    inputs: [
+      {
+        label: "YUVFrame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+      {
+        label: "pU",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "pV",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "radius",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "Mask",
+        type: "output" as const,
+        valueType: "mask" as const,
+      },
+    ],
+  },
+  {
+    type: "Hough",
+    hardcoded: false,
+    customInput: false,
+    code: `const a_step = 0.1;
     const r_step = 4.0;
     const max_r = 400.0;
     
@@ -394,41 +404,41 @@ const templatesInitial: (
 
   return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
     }`,
-      inputs: [
-        {
-          label: "YUVFrame",
-          type: "input" as const,
-          valueType: "imagedata" as const,
-        },
-        {
-          label: "Mask",
-          type: "input" as const,
-          valueType: "mask" as const,
-        },
-      ],
-      outputs: [
-        {
-          label: "A",
-          type: "output" as const,
-          valueType: "number" as const,
-        },
-        {
-          label: "R",
-          type: "output" as const,
-          valueType: "number" as const,
-        },
-        {
-          label: "A_Deg",
-          type: "output" as const,
-          valueType: "number" as const,
-        },
-      ],
-    },
-  ].map(template => ({
-    ...template,
-    code: formatCode(template.code),
-    fn: getFunctionFromCode(template.code),
-  }));
+    inputs: [
+      {
+        label: "YUVFrame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+      {
+        label: "Mask",
+        type: "input" as const,
+        valueType: "mask" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "A",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "R",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "A_Deg",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+    ],
+  },
+].map(template => ({
+  ...template,
+  code: formatCode(template.code),
+  fn: getFunctionFromCode(template.code),
+}));
 
 export default function App() {
   const classes = useStyles({});
@@ -443,19 +453,18 @@ export default function App() {
     setCurrentError(null);
   }
 
-  const customValueRef = useRef({});
+  const [customValues, setCustomValues] = useState({});
+  usePersistState(customValues, setCustomValues, "customValues");
 
-  const [templates, setTemplates] = useState(() =>
-    templatesInitial(customValueRef)
-  );
+  const [templates, setTemplates] = useState(templatesInitial);
 
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
   const [buildingBlockName, setBuildingBlockName] = useState("");
-  function handleAdd() {
+  const handleAdd = useCallback(() => {
     setBuildingBlockName("");
     setAddBlockDialogOpen(true);
-  }
-  function handleCloseAddBlockDialog() {
+  }, []);
+  const handleCloseAddBlockDialog = useCallback(() => {
     // setTemplates(t => [
     //   ...t,
     //   {
@@ -469,29 +478,43 @@ export default function App() {
     //   },
     // ]);
     // setAddBlockDialogOpen(false);
-  }
+  }, []);
 
   const [blocks, setBlocks] = useState<Block<BlockInfo, IOPortInfo>[]>([]);
-  function reHydrateBlocks(blocks: Block<BlockInfo, IOPortInfo>[]) {
-    const nBlocks = blocks.map(b => ({
-      ...b,
-      ...templates.find(t => t.type === b.type),
-      inputs: b.inputs,
-      outputs: b.outputs,
-      fn: getFunctionFromCode(b.code),
-    }));
-    setBlocks(nBlocks);
-  }
+  const reHydrateBlocks = useCallback(
+    (blocks: Block<BlockInfo, IOPortInfo>[]) => {
+      const nBlocks = blocks.map(b => ({
+        ...b,
+        ...templates.find(t => t.type === b.type),
+        inputs: b.inputs,
+        outputs: b.outputs,
+        fn: getFunctionFromCode(b.code),
+      }));
+      setBlocks(nBlocks);
+    },
+    [templates]
+  );
   usePersistState(blocks, reHydrateBlocks, "blocks");
+
+  const [blocksPos, setBlocksPos] = useState<
+    { uuid: string; x: number; y: number }[]
+  >([]);
+  usePersistState(blocksPos, setBlocksPos, "blocksPos");
 
   const [links, setLinks] = useState<Link<IOPortInfo>[]>([]);
   usePersistState(links, setLinks, "links");
+
+  const handleClearAll = useAutoCallback(() => {
+    setBlocks([]);
+    setBlocksPos([]);
+    setLinks([]);
+  });
 
   const [selectedBlockID, setSelectedBlockID] = useState(null);
   const selectedBlock = blocks.find(b => b.uuid === selectedBlockID);
   const code = selectedBlock ? selectedBlock.code : "";
 
-  function handleRun(code: string) {
+  const handleRun = useAutoCallback((code: string) => {
     setBlocks(blocks =>
       blocks.map(b => {
         if (b.uuid === selectedBlockID) {
@@ -503,7 +526,7 @@ export default function App() {
         }
       })
     );
-  }
+  });
 
   const tempResultsRef = useRef<{ [key: string]: { [key: string]: any } }>({});
 
@@ -545,7 +568,7 @@ export default function App() {
           tempResultsRef.current[block.uuid] = { Frame: imgData };
         } else if (block.customInput) {
           tempResultsRef.current[block.uuid] = {
-            ...customValueRef.current[block.uuid],
+            ...customValues[block.uuid],
           };
         } else if (block.type === "DisplayFrame") {
           tempResultsRef.current[block.uuid] = { Frame: params["Frame"] };
@@ -584,6 +607,9 @@ export default function App() {
     return null;
   }
 
+  // To allow deferred IO Decoration update
+  const updateIndex = usePeriodicRerender(300);
+
   const renderIODecoration = useCallback(
     (port: IOPortInst<IOPortInfo>) => {
       const value =
@@ -608,24 +634,24 @@ export default function App() {
         return null;
       }
     },
-    [tempResultsRef]
+    [tempResultsRef, updateIndex]
   );
-
-  // To allow deferred IO Decoration update
-  usePeriodicRerender(300);
 
   return (
     <>
       <ThemeProvider theme={theme}>
         <CssBaseline />
 
-        <AppBar position="static">
-          <Toolbar variant="dense">
-            <Typography variant="h6" className={classes.title}>
-              Block Editor
-            </Typography>
-          </Toolbar>
-        </AppBar>
+        {useAutoMemo(() => (
+          <AppBar position="static">
+            <Toolbar variant="dense">
+              <Typography variant="h6" className={classes.title}>
+                Block Editor
+              </Typography>
+              <Button onClick={handleClearAll}>Clear All</Button>
+            </Toolbar>
+          </AppBar>
+        ))}
 
         <div className={classes.containerVert}>
           <div className={classes.containerHoriz}>
@@ -648,6 +674,8 @@ export default function App() {
             <BlockEditor
               blocks={blocks}
               setBlocks={setBlocks}
+              blocksPos={blocksPos}
+              setBlocksPos={setBlocksPos}
               links={links}
               setLinks={setLinks}
               templates={templates}
@@ -655,49 +683,57 @@ export default function App() {
               selectedBlock={selectedBlockID}
               onSelectBlock={setSelectedBlockID}
               renderIODecoration={renderIODecoration}
+              customParams={{ customValues, setCustomValues }}
             />
           </div>
         </div>
 
-        <Snackbar
-          open={Boolean(currentError)}
-          autoHideDuration={6000}
-          onClose={handleCloseError}
-        >
-          <Alert
-            severity="error"
-            elevation={6}
-            variant="filled"
-            onClose={handleCloseError}
-          >
-            <AlertTitle>Error:</AlertTitle>
-            <pre>{currentError}</pre>
-          </Alert>
-        </Snackbar>
-
-        <Dialog open={addBlockDialogOpen} onClose={handleCloseAddBlockDialog}>
-          <DialogTitle>Add a new Block</DialogTitle>
-          <DialogContent>
-            <TextField
-              value={buildingBlockName}
-              onChange={e => setBuildingBlockName(e.target.value)}
-              label="Name"
-              margin="dense"
-              variant="outlined"
-              autoFocus
-              fullWidth
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={handleCloseAddBlockDialog}
-              variant="contained"
-              color="primary"
+        {useMemo(
+          () => (
+            <Snackbar
+              open={Boolean(currentError)}
+              autoHideDuration={6000}
+              onClose={handleCloseError}
             >
-              Add
-            </Button>
-          </DialogActions>
-        </Dialog>
+              <Alert
+                severity="error"
+                elevation={6}
+                variant="filled"
+                onClose={handleCloseError}
+              >
+                <AlertTitle>Error:</AlertTitle>
+                <pre>{currentError}</pre>
+              </Alert>
+            </Snackbar>
+          ),
+          []
+        )}
+
+        {useAutoMemo(() => (
+          <Dialog open={addBlockDialogOpen} onClose={handleCloseAddBlockDialog}>
+            <DialogTitle>Add a new Block</DialogTitle>
+            <DialogContent>
+              <TextField
+                value={buildingBlockName}
+                onChange={e => setBuildingBlockName(e.target.value)}
+                label="Name"
+                margin="dense"
+                variant="outlined"
+                autoFocus
+                fullWidth
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={handleCloseAddBlockDialog}
+                variant="contained"
+                color="primary"
+              >
+                Add
+              </Button>
+            </DialogActions>
+          </Dialog>
+        ))}
       </ThemeProvider>
     </>
   );

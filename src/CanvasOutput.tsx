@@ -32,7 +32,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-export default function CanvasOutput({
+export default React.memo(function CanvasOutput({
   handler,
   onError,
   title,
@@ -130,4 +130,4 @@ export default function CanvasOutput({
       </div>
     </div>
   );
-}
+});
