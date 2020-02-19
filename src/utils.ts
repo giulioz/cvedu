@@ -29,8 +29,8 @@ export function useInterval(callback: () => void, delay: number) {
 }
 
 export function usePeriodicRerender(timeout: number) {
-  const forceUpdate = useState(0)[1];
-  useInterval(() => forceUpdate(i => i + 1), timeout);
+  const [forceUpdate, set] = useState(0);
+  useInterval(() => set(i => i + 1), timeout);
   return forceUpdate;
 }
 

@@ -382,16 +382,15 @@ const BlockRender = React.memo(function BlockRender({
 });
 
 const LinkRender = React.memo(function LinkRender({
-  ax = 0,
-  ay = 0,
-  bx = 0,
-  by = 0,
+  link,
   strokeWidth = 3,
   markerWidth = 2,
   markerHeight = 4,
   onDoubleClick = () => {},
 }: any) {
   const classes = useStyles({});
+
+  const { ax = 0, ay = 0, bx = 0, by = 0 } = link;
 
   const x = Math.min(ax, bx);
   const y = Math.min(ay, by);
@@ -407,9 +406,9 @@ const LinkRender = React.memo(function LinkRender({
     y: by - y + strokeWidth / 2 + markerHeight,
   };
 
-  const link = `M${src.x},${src.y}C${(src.x + dst.x) / 2},${src.y} ${(src.x +
-    dst.x) /
-    2},${dst.y} ${dst.x},${dst.y}`;
+  const linkPath = `M${src.x},${src.y}C${(src.x + dst.x) / 2},${
+    src.y
+  } ${(src.x + dst.x) / 2},${dst.y} ${dst.x},${dst.y}`;
 
   return (
     <svg
@@ -420,7 +419,7 @@ const LinkRender = React.memo(function LinkRender({
       }}
       width={width + strokeWidth + markerWidth * 2}
       height={height + strokeWidth + markerHeight * 2}
-      onDoubleClick={onDoubleClick}
+      onDoubleClick={() => onDoubleClick(link)}
     >
       <defs>
         <marker
@@ -435,7 +434,7 @@ const LinkRender = React.memo(function LinkRender({
         </marker>
       </defs>
       <path
-        d={link}
+        d={linkPath}
         markerEnd="url(#head)"
         stroke="#C33"
         strokeWidth={strokeWidth}
@@ -611,20 +610,17 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
     [blocks]
   );
 
-  const handleRemoveLink = useCallback(
-    (link: Link<TPortInfo>) => () => {
-      setLinks(links =>
-        links.filter(
-          l =>
-            !(
-              serializeIOPortInst(link.src) === serializeIOPortInst(l.src) &&
-              serializeIOPortInst(link.dst) === serializeIOPortInst(l.dst)
-            )
-        )
-      );
-    },
-    []
-  );
+  const handleRemoveLink = useCallback((link: Link<TPortInfo>) => {
+    setLinks(links =>
+      links.filter(
+        l =>
+          !(
+            serializeIOPortInst(link.src) === serializeIOPortInst(l.src) &&
+            serializeIOPortInst(link.dst) === serializeIOPortInst(l.dst)
+          )
+      )
+    );
+  }, []);
 
   const [forceUpdate, setForceUpdate] = useState(0);
   const linksWithPosGen = useCallback(
@@ -682,8 +678,8 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
     <div className={classes.root}>
       {linksWithPos.map(link => (
         <LinkRender
-          {...link}
-          onDoubleClick={handleRemoveLink(link)}
+          link={link}
+          onDoubleClick={handleRemoveLink}
           key={
             (link.src ? serializeIOPortInst(link.src) : "tba" + uuidv4()) +
             "-link-" +

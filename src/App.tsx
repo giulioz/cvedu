@@ -459,11 +459,11 @@ export default function App() {
   const classes = useStyles({});
 
   const [currentError, setCurrentError] = useState(null);
-  function handleError(error: any) {
+  const handleError = useAutoCallback(function handleError(error: any) {
     if (String(error) !== currentError) {
       setCurrentError(String(error));
     }
-  }
+  });
   function handleCloseError() {
     setCurrentError(null);
   }
@@ -545,7 +545,9 @@ export default function App() {
 
   const tempResultsRef = useRef<{ [key: string]: { [key: string]: any } }>({});
 
-  function handleFrame(imgData: ImageData): ImageData | null {
+  const handleFrame = useAutoCallback(function handleFrame(
+    imgData: ImageData
+  ): ImageData | null {
     if (currentError) return null;
 
     tempResultsRef.current = {};
@@ -620,10 +622,10 @@ export default function App() {
     }
 
     return null;
-  }
+  });
 
   // To allow deferred IO Decoration update
-  const updateIndex = usePeriodicRerender(300);
+  const updateIndex = usePeriodicRerender(100);
 
   const renderIODecoration = useCallback(
     (port: IOPortInst<IOPortInfo>) => {
@@ -651,6 +653,11 @@ export default function App() {
     },
     [tempResultsRef, updateIndex]
   );
+
+  const customRendererParams = useAutoMemo(() => ({
+    customValues,
+    setCustomValues,
+  }));
 
   return (
     <>
@@ -698,7 +705,7 @@ export default function App() {
               selectedBlock={selectedBlockID}
               onSelectBlock={setSelectedBlockID}
               renderIODecoration={renderIODecoration}
-              customParams={{ customValues, setCustomValues }}
+              customParams={customRendererParams}
             />
           </div>
         </div>
