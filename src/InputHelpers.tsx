@@ -49,7 +49,6 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
 }) {
   const classes = useStyles({});
 
-  console.log(block.uuid, customValues[block.uuid]);
   const value = customValues[block.uuid] ? customValues[block.uuid].Number : 0;
 
   const [tempValue, setTempValue] = useState(String(value));
@@ -106,10 +105,14 @@ export const UVInputHelper = React.memo(function UVInputHelper<
   BlockInfo,
   IOPortInfo
 >({
-  customValueRef,
+  customValues,
+  setCustomValues,
   block,
 }: {
-  customValueRef: React.RefObject<{ [key: string]: any }>;
+  customValues: { [key: string]: any };
+  setCustomValues: (
+    fn: (old: { [key: string]: any }) => { [key: string]: any }
+  ) => void;
   block: Block<BlockInfo, IOPortInfo>;
 }) {
   const classes = useStyles({});
@@ -117,7 +120,7 @@ export const UVInputHelper = React.memo(function UVInputHelper<
   const rectRef = useRef<HTMLDivElement>();
 
   const [tempValue, setTempValue] = useState(
-    customValueRef.current[block.uuid] || { U: 0, V: 0 }
+    customValues[block.uuid] || { U: 0, V: 0 }
   );
 
   const bind = useDrag(({ xy: [x, y], event }) => {
@@ -128,7 +131,7 @@ export const UVInputHelper = React.memo(function UVInputHelper<
     const ny = (1 - ty / bounds.height) * 255;
 
     setTempValue({ U: nx, V: ny, x: tx, y: ty });
-    customValueRef.current[block.uuid] = { U: nx, V: ny };
+    setCustomValues(old => ({ ...old, [block.uuid]: { U: nx, V: ny } }));
 
     event.stopPropagation();
   });

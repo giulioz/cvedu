@@ -147,28 +147,43 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       },
     ],
   },
-  // {
-  //   type: "UVInput",
-  //   hardcoded: true,
-  //   customInput: true,
-  //   code: "",
-  //   customRenderer: (block: Block<BlockInfo, IOPortInfo>) => (
-  //     <UVInputHelper customValues={customValues} block={block} />
-  //   ),
-  //   inputs: [],
-  //   outputs: [
-  //     {
-  //       label: "U",
-  //       type: "output" as const,
-  //       valueType: "number" as const,
-  //     },
-  //     {
-  //       label: "V",
-  //       type: "output" as const,
-  //       valueType: "number" as const,
-  //     },
-  //   ],
-  // },
+  {
+    type: "UVInput",
+    hardcoded: true,
+    customInput: true,
+    code: "",
+    customRenderer: (
+      block: Block<BlockInfo, IOPortInfo>,
+      {
+        customValues,
+        setCustomValues,
+      }: {
+        customValues: { [key: string]: any };
+        setCustomValues: (
+          fn: (old: { [key: string]: any }) => { [key: string]: any }
+        ) => void;
+      }
+    ) => (
+      <UVInputHelper
+        customValues={customValues}
+        setCustomValues={setCustomValues}
+        block={block}
+      />
+    ),
+    inputs: [],
+    outputs: [
+      {
+        label: "U",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "V",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+    ],
+  },
   {
     type: "DisplayFrame",
     hardcoded: true,
