@@ -20,6 +20,7 @@ import { useAutoMemo, useAutoCallback } from "hooks.macro";
 
 import { usePeriodicRerender, usePersistState } from "./utils";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
+import { maskToImageData } from "./videoUtils";
 import BlockEditor, {
   BlockTemplate,
   Block,
@@ -468,9 +469,6 @@ export default function App() {
     setCurrentError(null);
   }
 
-  const [customValues, setCustomValues] = useState({});
-  usePersistState(customValues, setCustomValues, "customValues");
-
   const [templates, setTemplates] = useState(templatesInitial);
 
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
@@ -519,10 +517,14 @@ export default function App() {
   const [links, setLinks] = useState<Link<IOPortInfo>[]>([]);
   usePersistState(links, setLinks, "links");
 
+  const [customValues, setCustomValues] = useState({});
+  usePersistState(customValues, setCustomValues, "customValues");
+
   const handleClearAll = useAutoCallback(() => {
     setBlocks([]);
     setBlocksPos([]);
     setLinks([]);
+    setCustomValues({});
   });
 
   const [selectedBlockID, setSelectedBlockID] = useState(null);
@@ -544,6 +546,16 @@ export default function App() {
   });
 
   const tempResultsRef = useRef<{ [key: string]: { [key: string]: any } }>({});
+
+  const { frameOutputName, blockToDisplay } = useAutoMemo(() => {
+    const blockToDisplay = blocks.find(b => b.uuid === selectedBlockID);
+    const frameOutputName =
+      blockToDisplay &&
+      blockToDisplay.outputs.find(
+        o => o.valueType === "imagedata" || o.valueType === "mask"
+      );
+    return { frameOutputName, blockToDisplay };
+  });
 
   const handleFrame = useAutoCallback(function handleFrame(
     imgData: ImageData
@@ -616,6 +628,20 @@ export default function App() {
       }
     }
 
+    if (frameOutputName && tempResultsRef.current[blockToDisplay.uuid]) {
+      if (frameOutputName.valueType === "imagedata") {
+        return tempResultsRef.current[blockToDisplay.uuid][
+          frameOutputName.label
+        ];
+      }
+
+      if (frameOutputName.valueType === "mask") {
+        return maskToImageData(
+          tempResultsRef.current[blockToDisplay.uuid][frameOutputName.label]
+        );
+      }
+    }
+
     const displayBlock = blocks.find(b => b.type === "DisplayFrame");
     if (displayBlock && tempResultsRef.current[displayBlock.uuid]) {
       return tempResultsRef.current[displayBlock.uuid]["Frame"];
@@ -681,7 +707,11 @@ export default function App() {
               <CanvasOutput
                 handler={handleFrame}
                 onError={handleError}
-                title="Output"
+                title={
+                  blockToDisplay && frameOutputName
+                    ? `Output for ${blockToDisplay.type}`
+                    : "Output"
+                }
               />
             </div>
             <div className={classes.containerHorizHalf}>

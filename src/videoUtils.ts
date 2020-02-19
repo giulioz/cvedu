@@ -46,3 +46,20 @@ export function useWebcam() {
 
   return { video, handleStart };
 }
+
+export function maskToImageData(mask: {
+  data: boolean[];
+  width: number;
+  height: number;
+}) {
+  const newData = new ImageData(mask.width, mask.height);
+
+  mask.data.forEach((d, i) => {
+    newData.data[i * 4] = d ? 255 : 0;
+    newData.data[i * 4 + 1] = d ? 255 : 0;
+    newData.data[i * 4 + 2] = d ? 255 : 0;
+    newData.data[i * 4 + 3] = 255;
+  });
+
+  return newData;
+}
