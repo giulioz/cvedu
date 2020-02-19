@@ -1,6 +1,12 @@
-import React, { useState, useRef, useMemo, useCallback } from "react";
-import { useSpring, animated, config as springConfig } from "react-spring";
+import React, {
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+  useEffect,
+} from "react";
 import { useDrag } from "react-use-gesture";
+import { useAutoMemo, useAutoEffect } from "hooks.macro";
 import { Theme, Button, IconButton } from "@material-ui/core";
 import { makeStyles } from "@material-ui/styles";
 import AddIcon from "@material-ui/icons/Add";
@@ -255,7 +261,6 @@ const BlockRender = React.memo(function BlockRender({
   onDragIO = () => {},
   onDragIOStart = () => {},
   onDragIOEnd = () => {},
-  onRest = () => {},
   renderIODecoration,
   block,
   customParams,
@@ -269,7 +274,6 @@ const BlockRender = React.memo(function BlockRender({
   onDragIO(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOStart(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOEnd(src: IOPortInst<{}>, dst: IOPortInst<{}> | null): void;
-  onRest(): void;
   renderIODecoration: (port: IOPortInst<any>) => JSX.Element;
   block: Block<any, any>;
   customParams: any;
@@ -278,12 +282,8 @@ const BlockRender = React.memo(function BlockRender({
 
   const { type, inputs, outputs, customRenderer, uuid } = block;
 
-  const { px, py } = useSpring({
-    px: x || 0,
-    py: y || 0,
-    config: springConfig.stiff,
-    onRest,
-  });
+  const px = x;
+  const py = y;
 
   const divRef = useRef<HTMLDivElement>();
   const firstTimeRef = useRef<number>();
@@ -334,7 +334,7 @@ const BlockRender = React.memo(function BlockRender({
   );
 
   return (
-    <animated.div
+    <div
       {...bind()}
       ref={divRef}
       className={classes.block + (selected ? " " + classes.selected : "")}
@@ -377,7 +377,7 @@ const BlockRender = React.memo(function BlockRender({
           {customRenderer(block, customParams)}
         </div>
       )}
-    </animated.div>
+    </div>
   );
 });
 
@@ -622,71 +622,55 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
     );
   }, []);
 
-  const [forceUpdate, setForceUpdate] = useState(0);
-  const linksWithPosGen = useCallback(
+  const [linksWithPos, setLinksWithPos] = useState(null);
+  useEffect(
     () =>
-      links.map(link => {
-        if (link.dst) {
-          const elStart = document.getElementById(
-            "block-port-" + serializeIOPortInst(link.src)
-          );
-          const elEnd = document.getElementById(
-            "block-port-" + serializeIOPortInst(link.dst)
-          );
+      setLinksWithPos(
+        links.map(link => {
+          if (link.dst) {
+            const elStart = document.getElementById(
+              "block-port-" + serializeIOPortInst(link.src)
+            );
+            const elEnd = document.getElementById(
+              "block-port-" + serializeIOPortInst(link.dst)
+            );
 
-          if (elStart && elEnd) {
-            const posStart = getIOPortPos(elStart, true);
-            const posEnd = getIOPortPos(elEnd, false);
+            if (elStart && elEnd) {
+              const posStart = getIOPortPos(elStart, true);
+              const posEnd = getIOPortPos(elEnd, false);
 
-            return {
-              ...link,
-              ax: posStart.x,
-              ay: posStart.y,
-              bx: posEnd.x,
-              by: posEnd.y,
-            };
+              return {
+                ...link,
+                ax: posStart.x,
+                ay: posStart.y,
+                bx: posEnd.x,
+                by: posEnd.y,
+              };
+            }
+
+            return link;
           }
 
           return link;
-        }
-
-        return link;
-      }),
-    [links, blocksPos, forceUpdate]
+        })
+      ),
+    [links, blocksPos]
   );
-  const linksWithPos = useMemo(() => linksWithPosGen(), [
-    linksWithPosGen,
-    blocksPos,
-    forceUpdate,
-  ]);
-  const updateLinkPos = useCallback(() => {
-    const newLinksWithPos = linksWithPosGen();
-    const hasToUpdate = newLinksWithPos.some(
-      (link, i) =>
-        linksWithPos[i].ax !== link.ax ||
-        linksWithPos[i].ay !== link.ay ||
-        linksWithPos[i].bx !== link.bx ||
-        linksWithPos[i].by !== link.by
-    );
-
-    if (hasToUpdate) {
-      setForceUpdate(i => i + 1);
-    }
-  }, [links, linksWithPos, linksWithPosGen, blocksPos, forceUpdate]);
 
   return (
     <div className={classes.root}>
-      {linksWithPos.map(link => (
-        <LinkRender
-          link={link}
-          onDoubleClick={handleRemoveLink}
-          key={
-            (link.src ? serializeIOPortInst(link.src) : "tba" + uuidv4()) +
-            "-link-" +
-            (link.dst ? serializeIOPortInst(link.dst) : "tba" + uuidv4())
-          }
-        />
-      ))}
+      {linksWithPos &&
+        linksWithPos.map(link => (
+          <LinkRender
+            link={link}
+            onDoubleClick={handleRemoveLink}
+            key={
+              (link.src ? serializeIOPortInst(link.src) : "tba" + uuidv4()) +
+              "-link-" +
+              (link.dst ? serializeIOPortInst(link.dst) : "tba" + uuidv4())
+            }
+          />
+        ))}
 
       <div className={classes.drawer}>
         <div className={classes.drawerScroll}>
@@ -726,7 +710,6 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
             onDragIOStart={handleDragIOStart}
             onDragIO={handleDragIO}
             onDragIOEnd={handleDragIOEnd}
-            onRest={updateLinkPos}
             renderIODecoration={renderIODecoration}
             block={block}
             customParams={customParams}
