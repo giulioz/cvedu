@@ -6,31 +6,6 @@ import preset_typescript from "@babel/preset-typescript";
 import * as ts from "typescript";
 import protect from "./babel-plugin-transform-prevent-infinite-loops";
 
-function instrumenter({ types, template }) {
-  const buildLogger = template(`
-    updateBinding("NAME", NAME);
-  `);
-
-  return {
-    visitor: {
-      // VariableDeclaration({ node, scope }) {
-      //   console.log(node, scope);
-      //   const logger = buildLogger({ NAME: node.declarations[0].id.name });
-      //   console.log(logger);
-      //   scope.parent.push(logger);
-      //   // console.log(node.id.name);
-      // }
-      // BlockStatement({ node, scope }) {
-      //   Object.keys(scope.bindings).forEach(binding => {
-      //     const logger = buildLogger({ NAME: binding });
-      //     node.body.push(logger);
-      //   });
-      // }
-    },
-  };
-}
-Babel.registerPlugin("instrumenter", instrumenter);
-
 Babel.registerPreset("@babel/preset-env", preset_env);
 Babel.registerPreset("@babel/preset-typescript", preset_typescript);
 
@@ -38,16 +13,10 @@ const MAX_ITERATIONS = 500001;
 Babel.registerPlugin("loopProtection", protect(MAX_ITERATIONS));
 
 export function transformCode(source: string) {
-  const instrumented = Babel.transform(source, {
+  return Babel.transform(source, {
     filename: "file.ts",
-    presets: ["@babel/preset-typescript"],
-    plugins: ["instrumenter"],
-  }).code;
-
-  return Babel.transform(instrumented, {
+    presets: ["@babel/preset-typescript", "@babel/preset-env"],
     plugins: ["loopProtection"],
-    presets: ["@babel/preset-env"],
-    filename: "file.ts",
   }).code;
 }
 
@@ -82,12 +51,6 @@ export function buildGlobalsBinding(globals) {
   return lets + setter;
 }
 
-const head = `
-window.bindings = {};
-function updateBinding(name, value) {
-  window.bindings[name] = value;
-}`;
-
 export function getFunctionFromCode<THandler>(code: string) {
   const processed = transformCode(code);
 
@@ -95,7 +58,7 @@ export function getFunctionFromCode<THandler>(code: string) {
   if (!functionName) return null;
   const tail = `;return ${functionName};`;
 
-  const final = head + processed + tail;
+  const final = processed + tail;
   // console.log(final);
 
   /* eslint-disable-next-line no-new-func */

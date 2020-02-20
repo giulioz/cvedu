@@ -50,7 +50,7 @@ export default React.memo(function CanvasOutput({
 }) {
   const classes = useStyles({});
 
-  const { video } = useWebcam();
+  const video = useWebcam();
   const [pausedFrame, setPausedFrame] = useState<null | ImageData>(null);
   const canvasRef = useRef<HTMLCanvasElement>();
 

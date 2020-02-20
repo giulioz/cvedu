@@ -31,12 +31,12 @@ export default (MAX_ITERATIONS: number) => ({ types: t, template }) => {
         const iteratorInit = t.numericLiteral(0);
         path.scope.parent.push({
           id: iterator,
-          init: iteratorInit
+          init: iteratorInit,
         });
         // If statement and throw error if it matches our criteria
         const guard = buildGuard({
           ITERATOR: iterator,
-          MAX_ITERATIONS: t.numericLiteral(MAX_ITERATIONS)
+          MAX_ITERATIONS: t.numericLiteral(MAX_ITERATIONS),
         });
         // No block statment e.g. `while (1) 1;`
         if (!path.get("body").isBlockStatement()) {
@@ -45,7 +45,7 @@ export default (MAX_ITERATIONS: number) => ({ types: t, template }) => {
         } else {
           path.get("body").unshiftContainer("body", guard);
         }
-      }
-    }
+      },
+    },
   };
 };

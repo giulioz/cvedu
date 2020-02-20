@@ -40,11 +40,7 @@ export function useWebcam() {
     init();
   }, [video]);
 
-  function handleStart() {
-    video.play();
-  }
-
-  return { video, handleStart };
+  return video;
 }
 
 export function maskToImageData(mask: {
