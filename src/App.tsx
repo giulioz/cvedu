@@ -546,8 +546,8 @@ export default function App() {
   const reHydrateBlocks = useCallback(
     (blocks: Block<BlockInfo, IOPortInfo>[]) => {
       const nBlocks = blocks.map(b => ({
-        ...b,
         ...templates.find(t => t.type === b.type),
+        ...b,
         inputs: b.inputs,
         outputs: b.outputs,
         fn: getFunctionFromCode(b.code),
