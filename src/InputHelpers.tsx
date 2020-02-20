@@ -10,6 +10,9 @@ const useStyles = makeStyles(theme => ({
     paddingLeft: theme.spacing(1),
     paddingRight: theme.spacing(1),
   },
+  numberField:{
+    width: theme.spacing(4),
+  },
   yuvRoot: {
     margin: theme.spacing(1),
     width: theme.spacing(15),
@@ -90,6 +93,7 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
           value={tempValue}
           margin="dense"
           onChange={e => handleChange(e.target.value)}
+          className={classes.numberField}
           inputProps={{
             min: minValue,
             max: maxValue,
