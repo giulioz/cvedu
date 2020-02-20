@@ -1,4 +1,10 @@
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useLayoutEffect,
+} from "react";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -16,7 +22,7 @@ import {
   DialogTitle,
   Button,
 } from "@material-ui/core";
-import { useAutoMemo, useAutoCallback } from "hooks.macro";
+import { useAutoMemo, useAutoCallback, useAutoLayoutEffect, useAutoEffect } from "hooks.macro";
 
 import { usePeriodicRerender, usePersistState } from "./utils";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
@@ -563,8 +569,35 @@ export default function App() {
   >([]);
   usePersistState(blocksPos, setBlocksPos, "blocksPos");
 
-  const [links, setLinks] = useState<Link<IOPortInfo>[]>([]);
+  const [links, setLinks] = useState<(Link<IOPortInfo> | false)[]>([]);
   usePersistState(links, setLinks, "links");
+  useAutoEffect(() => {
+    if (!links.every(l => l !== false)) {
+      setCurrentError("Incompatible Types");
+    }
+  });
+  const validLinks: Link<IOPortInfo>[] = useAutoMemo(
+    () => links.filter(l => l !== false) as Link<IOPortInfo>[]
+  );
+
+  const handleUpdateLinks = useAutoCallback(
+    (fn: (prev: Link<IOPortInfo>[]) => Link<IOPortInfo>[]) => {
+      function linkValid(link: Link<IOPortInfo>) {
+        if (!link.dst || !link.src.valueType) {
+          return true;
+        } else if (link.src.valueType !== link.dst.valueType) {
+          return false;
+        } else {
+          return true;
+        }
+      }
+
+      setLinks(old => {
+        const newLinks = fn(old.filter(l => l !== false) as Link<IOPortInfo>[]);
+        return newLinks.map(l => (linkValid(l) ? l : false));
+      });
+    }
+  );
 
   const [customValues, setCustomValues] = useState({});
   usePersistState(customValues, setCustomValues, "customValues");
@@ -624,7 +657,9 @@ export default function App() {
       const params = {};
       b.inputs.forEach(i => (params[i.label] = null));
 
-      const inLinks = links.filter(l => l.dst && b.uuid === l.dst.blockUuid);
+      const inLinks = validLinks.filter(
+        l => l.dst && b.uuid === l.dst.blockUuid
+      );
       inLinks.forEach(({ src, dst }) => {
         if (
           tempResultsRef.current[src.blockUuid] &&
@@ -660,7 +695,7 @@ export default function App() {
         }
 
         if (params) {
-          const outLinks = links.filter(
+          const outLinks = validLinks.filter(
             l => l.src && l.src.blockUuid === block.uuid
           );
 
@@ -782,8 +817,8 @@ export default function App() {
               setBlocks={setBlocks}
               blocksPos={blocksPos}
               setBlocksPos={setBlocksPos}
-              links={links}
-              setLinks={setLinks}
+              links={validLinks}
+              setLinks={handleUpdateLinks}
               templates={templates}
               onAdd={handleAdd}
               selectedBlock={selectedBlockID}
@@ -797,7 +832,7 @@ export default function App() {
         {useAutoMemo(() => (
           <Snackbar
             open={Boolean(currentError)}
-            autoHideDuration={6000}
+            // autoHideDuration={6000}
             onClose={handleCloseError}
           >
             <Alert
