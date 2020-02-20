@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useState } from "react";
+import { useAutoMemo, useAutoCallback } from "hooks.macro";
 import { makeStyles } from "@material-ui/styles";
 import { Theme, IconButton } from "@material-ui/core";
 import PlayIcon from "@material-ui/icons/PlayArrow";
@@ -17,6 +18,12 @@ const useStyles = makeStyles((theme: Theme) => ({
   canvas: {
     maxWidth: "100%",
     maxHeight: "100%",
+  },
+  tooltip: {
+    position: "absolute",
+    top: theme.spacing(1),
+    left: theme.spacing(1),
+    zIndex: 1000,
   },
   title: {
     position: "absolute",
@@ -47,7 +54,25 @@ export default React.memo(function CanvasOutput({
   const [pausedFrame, setPausedFrame] = useState<null | ImageData>(null);
   const canvasRef = useRef<HTMLCanvasElement>();
 
-  function handleTogglePlay() {
+  const [underPixelColor, setUnderPixelColor] = useState();
+
+  const handleMouseMove = useAutoCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = e.target as HTMLCanvasElement;
+      const bounds = canvas.getBoundingClientRect();
+      const ctx = canvas.getContext("2d");
+      const data = ctx.getImageData(
+        e.clientX - bounds.left,
+        e.clientY - bounds.top,
+        1,
+        1
+      ).data;
+      const color = data.join(", ");
+      setUnderPixelColor(color);
+    }
+  );
+
+  const handleTogglePlay = useAutoCallback(function handleTogglePlay() {
     setPausedFrame(frame => {
       if (frame) {
         return null;
@@ -65,7 +90,7 @@ export default React.memo(function CanvasOutput({
         return imageData;
       }
     });
-  }
+  });
 
   const videoReady = useRef(false);
 
@@ -121,13 +146,22 @@ export default React.memo(function CanvasOutput({
 
   return (
     <div className={classes.root}>
+      {underPixelColor && (
+        <div className={classes.tooltip}>{underPixelColor}</div>
+      )}
       <div className={classes.title}>{title}</div>
-      <canvas className={classes.canvas} ref={canvasRef} />
-      <div className={classes.controls}>
-        <IconButton onClick={handleTogglePlay}>
-          {pausedFrame ? <PlayIcon /> : <PauseIcon />}
-        </IconButton>
-      </div>
+      <canvas
+        className={classes.canvas}
+        onMouseMove={handleMouseMove}
+        ref={canvasRef}
+      />
+      {useAutoMemo(() => (
+        <div className={classes.controls}>
+          <IconButton onClick={handleTogglePlay}>
+            {pausedFrame ? <PlayIcon /> : <PauseIcon />}
+          </IconButton>
+        </div>
+      ))}
     </div>
   );
 });
