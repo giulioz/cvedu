@@ -45,29 +45,9 @@ const theme = createMuiTheme({
 });
 
 const useStyles = makeStyles(theme => ({
-  full: {
-    flexGrow: 1,
-    height: "100%",
-  },
   title: {
     flexGrow: 1,
   },
-  firstContainer: {
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  canvas: {
-    maxWidth: "100%",
-    maxHeight: "100%",
-  },
-  logOutput: {
-    flex: 1,
-    width: "100%",
-    overflow: "scroll",
-  },
-
   containerVert: {
     width: "100%",
     height: "100%",
@@ -78,8 +58,6 @@ const useStyles = makeStyles(theme => ({
     height: "50%",
     display: "flex",
     flexDirection: "row",
-    // flex: 1,
-    // flexBasis: 0,
   },
   containerHorizHalf: {
     flex: 1,
@@ -606,9 +584,14 @@ export default function App() {
     setBlocks(blocks =>
       blocks.map(b => {
         if (b.uuid === selectedBlockID) {
-          const fn = getFunctionFromCode(code);
+          try {
+            const fn = getFunctionFromCode(code);
+            return { ...b, code, fn };
+          } catch (e) {
+            setCurrentError(String(e));
+          }
 
-          return { ...b, code, fn };
+          return b;
         } else {
           return b;
         }
@@ -811,26 +794,23 @@ export default function App() {
           </div>
         </div>
 
-        {useMemo(
-          () => (
-            <Snackbar
-              open={Boolean(currentError)}
-              autoHideDuration={6000}
+        {useAutoMemo(() => (
+          <Snackbar
+            open={Boolean(currentError)}
+            autoHideDuration={6000}
+            onClose={handleCloseError}
+          >
+            <Alert
+              severity="error"
+              elevation={6}
+              variant="filled"
               onClose={handleCloseError}
             >
-              <Alert
-                severity="error"
-                elevation={6}
-                variant="filled"
-                onClose={handleCloseError}
-              >
-                <AlertTitle>Error:</AlertTitle>
-                <pre>{currentError}</pre>
-              </Alert>
-            </Snackbar>
-          ),
-          []
-        )}
+              <AlertTitle>Error:</AlertTitle>
+              <pre>{currentError}</pre>
+            </Alert>
+          </Snackbar>
+        ))}
 
         {useAutoMemo(() => (
           <Dialog open={addBlockDialogOpen} onClose={handleCloseAddBlockDialog}>
