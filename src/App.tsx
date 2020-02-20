@@ -104,6 +104,7 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: false,
     code: "",
+    color: "#422828",
     inputs: [],
     outputs: [
       {
@@ -118,6 +119,7 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: true,
     code: "",
+    color: "#423f28",
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
       {
@@ -153,6 +155,7 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: true,
     code: "",
+    color: "#423f28",
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
       {
@@ -190,6 +193,7 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: false,
     code: "",
+    color: "#284042",
     inputs: [
       {
         label: "Frame",
@@ -447,6 +451,73 @@ const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         label: "A_Deg",
         type: "output" as const,
         valueType: "number" as const,
+      },
+    ],
+  },
+  {
+    type: "DrawLine",
+    hardcoded: false,
+    customInput: false,
+    code: `function DrawLine({
+      Frame,
+      A,
+      R
+    }: {
+      Frame: ImageData;
+      A: number;
+      R: number;
+    }): { Frame: ImageData } {
+      const newData = new ImageData(Frame.width, Frame.height);
+    
+      for (let i = 0; i < Frame.data.length; i += 4) {
+        const R = Frame.data[i];
+        const G = Frame.data[i + 1];
+        const B = Frame.data[i + 2];
+    
+        newData.data[i] = R;
+        newData.data[i + 1] = G;
+        newData.data[i + 2] = B;
+        newData.data[i + 3] = 255;
+      }
+    
+      A = -A - (90 * Math.PI) / 180;
+    
+      for (let x = 0; x < Frame.width; x++) {
+        const px = (x * 2) / Frame.width - 1;
+        const s = Frame.width / Math.cos(A);
+        const py = px * Math.sin(A) * s;
+    
+        const y = Math.round(Frame.height / 2 - py / 2);
+        const i = (x + y * Frame.width) * 4;
+        newData.data[i] = 255;
+        newData.data[i + 1] = 255;
+        newData.data[i + 2] = 255;
+      }
+    
+      return { Frame: newData };
+    }`,
+    inputs: [
+      {
+        label: "Frame",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+      {
+        label: "A",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "R",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "Frame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
       },
     ],
   },

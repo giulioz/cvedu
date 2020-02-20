@@ -6,7 +6,6 @@ import React, {
   useEffect,
 } from "react";
 import { useDrag } from "react-use-gesture";
-import { useAutoMemo, useAutoEffect } from "hooks.macro";
 import { Theme, Button, IconButton } from "@material-ui/core";
 import { makeStyles } from "@material-ui/styles";
 import AddIcon from "@material-ui/icons/Add";
@@ -35,6 +34,7 @@ export type BlockTemplate<
   code: string;
   inputs: TPortType[];
   outputs: TPortType[];
+  color?: string;
   customRenderer?: (
     block: Block<TBlockInfo, TPortInfo>,
     customParams: any
@@ -202,6 +202,7 @@ const BlockTemplateRender = React.memo(function BlockTemplateRender<
   TPortInfo
 >({
   type,
+  color,
   onMove = () => {},
   onMoveStart = () => {},
   onMoveEnd = () => {},
@@ -221,7 +222,11 @@ const BlockTemplateRender = React.memo(function BlockTemplateRender<
   });
 
   return (
-    <div {...bind()} className={classes.block}>
+    <div
+      {...bind()}
+      className={classes.block}
+      style={{ backgroundColor: color }}
+    >
       <div className={classes.topbar}>
         <div className={classes.title}>{type}</div>
       </div>
@@ -280,7 +285,7 @@ const BlockRender = React.memo(function BlockRender({
 }) {
   const classes = useStyles({});
 
-  const { type, inputs, outputs, customRenderer, uuid } = block;
+  const { type, inputs, outputs, customRenderer, uuid, color } = block;
 
   const px = x;
   const py = y;
@@ -341,6 +346,7 @@ const BlockRender = React.memo(function BlockRender({
       style={{
         left: px,
         top: py,
+        backgroundColor: color,
       }}
     >
       {useMemo(
