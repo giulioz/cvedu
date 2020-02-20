@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import { useAutoMemo, useAutoCallback, useAutoEffect } from "hooks.macro";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -6,17 +7,16 @@ import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
 import Snackbar from "@material-ui/core/Snackbar";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import TextField from "@material-ui/core/TextField";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import Button from "@material-ui/core/Button";
 import Alert from "@material-ui/lab/Alert";
 import AlertTitle from "@material-ui/lab/AlertTitle";
-import {
-  Dialog,
-  DialogActions,
-  TextField,
-  DialogContent,
-  DialogTitle,
-  Button,
-} from "@material-ui/core";
-import { useAutoMemo, useAutoCallback, useAutoEffect } from "hooks.macro";
+import DeleteForeverIcon from "@material-ui/icons/DeleteForever";
+import { DiGithubBadge } from "react-icons/di";
 
 import { templatesInitial } from "./templates";
 import { usePeriodicRerender, usePersistState } from "./utils";
@@ -43,6 +43,9 @@ const useStyles = makeStyles(theme => ({
   title: {
     flexGrow: 1,
   },
+  topButton: {
+    margin: theme.spacing(1),
+  },
   containerVert: {
     width: "100%",
     height: "100%",
@@ -50,7 +53,13 @@ const useStyles = makeStyles(theme => ({
   containerHoriz: {
     borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
     width: "100%",
-    height: "50%",
+    height: "60%",
+    display: "flex",
+    flexDirection: "row",
+  },
+  containerHorizSM: {
+    width: "100%",
+    height: "40%",
     display: "flex",
     flexDirection: "row",
   },
@@ -67,7 +76,12 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export type BlockInfo = { code: string; fn: any; customInput: boolean };
+export type BlockInfo = {
+  code: string;
+  solution: string;
+  fn: any;
+  customInput: boolean;
+};
 export type ValueType = "string" | "number" | "imagedata" | "mask";
 export type IOPortInfo = { valueType: ValueType };
 
@@ -178,6 +192,47 @@ export default function App() {
       blocks.map(b => {
         if (b.uuid === selectedBlockID) {
           try {
+            const fn = getFunctionFromCode(code);
+            return { ...b, code, fn };
+          } catch (e) {
+            setCurrentError(String(e));
+          }
+
+          return b;
+        } else {
+          return b;
+        }
+      })
+    );
+  });
+
+  const handleReset = useAutoCallback(() => {
+    setBlocks(blocks =>
+      blocks.map(b => {
+        if (b.uuid === selectedBlockID) {
+          try {
+            const code = templates.find(t => t.type === b.type).code;
+            const fn = getFunctionFromCode(code);
+            return { ...b, code, fn };
+          } catch (e) {
+            setCurrentError(String(e));
+          }
+
+          return b;
+        } else {
+          return b;
+        }
+      })
+    );
+  });
+
+  const handleSolution = useAutoCallback(() => {
+    setBlocks(blocks =>
+      blocks.map(b => {
+        if (b.uuid === selectedBlockID) {
+          try {
+            const code = templates.find(t => t.type === b.type).solution;
+            console.log(code);
             const fn = getFunctionFromCode(code);
             return { ...b, code, fn };
           } catch (e) {
@@ -345,7 +400,23 @@ export default function App() {
               <Typography variant="h6" className={classes.title}>
                 Block Editor
               </Typography>
-              <Button onClick={handleClearAll}>Clear All</Button>
+              <Button
+                startIcon={<DeleteForeverIcon />}
+                onClick={handleClearAll}
+                variant="outlined"
+                className={classes.topButton}
+              >
+                Clear All
+              </Button>
+              <Button
+                startIcon={<DiGithubBadge />}
+                variant="outlined"
+                component="a"
+                href="http://www.github.com/giulioz/cvedu"
+                className={classes.topButton}
+              >
+                About
+              </Button>
             </Toolbar>
           </AppBar>
         ))}
@@ -367,11 +438,13 @@ export default function App() {
               <CodeEditor
                 initialCode={code}
                 onRun={handleRun}
+                onReset={handleReset}
+                onSolution={handleSolution}
                 onError={handleError}
               />
             </div>
           </div>
-          <div className={classes.containerHoriz}>
+          <div className={classes.containerHorizSM}>
             <BlockEditor
               blocks={blocks}
               setBlocks={setBlocks}

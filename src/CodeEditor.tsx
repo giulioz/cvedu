@@ -2,7 +2,7 @@ import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 import MonacoEditor, { monaco } from "@monaco-editor/react";
 import MonacoEditorT from "monaco-editor";
 import { Toolbar, Button, IconButton } from "@material-ui/core";
-import { makeStyles } from "@material-ui/styles";
+import { makeStyles } from "@material-ui/core/styles";
 import PlayIcon from "@material-ui/icons/PlayArrow";
 import UndoIcon from "@material-ui/icons/Undo";
 import RedoIcon from "@material-ui/icons/Redo";
@@ -30,26 +30,6 @@ const formatProvider: MonacoEditorT.languages.DocumentFormattingEditProvider = {
   },
 };
 
-const bindingHoverProvider: MonacoEditorT.languages.HoverProvider = {
-  provideHover(model, position, token) {
-    const bns = (window as any).bindings;
-    const bName = model.getWordAtPosition(position);
-
-    if (bName && bns && bns[bName.word] !== undefined) {
-      let value = JSON.stringify(bns[bName.word]);
-      if (value.length > 50) {
-        value = value.substring(0, 50) + "...";
-      }
-
-      return {
-        contents: [{ value }],
-      };
-    } else {
-      return null;
-    }
-  },
-};
-
 const useStyles = makeStyles(theme => ({
   root: {
     width: "100%",
@@ -60,15 +40,22 @@ const useStyles = makeStyles(theme => ({
   spacer: {
     flexGrow: 1,
   },
+  button: {
+    marginLeft: theme.spacing(1),
+  },
 }));
 
 export default React.memo(function CodeEditor({
   initialCode,
   onRun,
+  onReset,
+  onSolution,
   onError,
 }: {
   initialCode: string;
   onRun: (code: string) => void;
+  onReset: () => void;
+  onSolution: () => void;
   onError: (error: any) => void;
 }) {
   const classes = useStyles({});
@@ -85,10 +72,6 @@ export default React.memo(function CodeEditor({
       monaco.languages.registerDocumentFormattingEditProvider(
         "typescript",
         formatProvider
-      );
-      monaco.languages.registerHoverProvider(
-        "typescript",
-        bindingHoverProvider
       );
 
       globalMonacoRef.current = monaco;
@@ -111,31 +94,10 @@ export default React.memo(function CodeEditor({
       .getModel()
       .updateOptions({ insertSpaces: true, indentSize: 2, tabSize: 2 });
 
-    const saveBinding = editor.addCommand(
+    editor.addCommand(
       globalMonacoRef.current.KeyMod.CtrlCmd |
         globalMonacoRef.current.KeyCode.KEY_S,
       handleRunClick
-    );
-
-    const testLensProvider: MonacoEditorT.languages.CodeLensProvider = {
-      provideCodeLenses(model, token) {
-        return {
-          lenses: [
-            {
-              range: model.getFullModelRange(),
-              command: {
-                id: saveBinding,
-                title: "save",
-              },
-            },
-          ],
-          dispose() {},
-        };
-      },
-    };
-    globalMonacoRef.current.languages.registerCodeLensProvider(
-      "typescript",
-      testLensProvider
     );
 
     setIsEditorReady(true);
@@ -157,30 +119,51 @@ export default React.memo(function CodeEditor({
     onRunRef.current(code);
   }
 
-  function handleUndoClick() {}
-
-  function handleRedoClick() {}
-
-  function handleResetClick() {
-    monacoRef.current.setValue(initialCode);
+  function handleUndoClick() {
+    monacoRef.current.trigger("source", "undo", null);
+  }
+  function handleRedoClick() {
+    monacoRef.current.trigger("source", "redo", null);
   }
 
   return (
     <div className={classes.root}>
-      {/* <Toolbar variant="dense">
+      <Toolbar variant="dense">
         <div className={classes.spacer} />
-        <Button onClick={handleResetClick}>Reset</Button>
-        <IconButton color="inherit" onClick={handleUndoClick}>
+        <Button className={classes.button} onClick={onSolution}>
+          Solution
+        </Button>
+        <Button className={classes.button} onClick={onReset}>
+          Reset
+        </Button>
+        <IconButton
+          size="small"
+          color="inherit"
+          className={classes.button}
+          onClick={handleUndoClick}
+        >
           <UndoIcon />
         </IconButton>
-        <IconButton color="inherit" onClick={handleRedoClick}>
+        <IconButton
+          size="small"
+          color="inherit"
+          className={classes.button}
+          onClick={handleRedoClick}
+        >
           <RedoIcon />
         </IconButton>
-        <Button onClick={handleFormatClick}>Format</Button>
-        <IconButton color="inherit" onClick={handleRunClick}>
+        <Button className={classes.button} onClick={handleFormatClick}>
+          Format
+        </Button>
+        <IconButton
+          size="small"
+          color="inherit"
+          className={classes.button}
+          onClick={handleRunClick}
+        >
           <PlayIcon />
         </IconButton>
-      </Toolbar> */}
+      </Toolbar>
 
       <div className={classes.spacer}>
         <MonacoEditor

@@ -11,6 +11,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: false,
     code: "",
+    solution: "",
     color: "#422828",
     inputs: [],
     outputs: [
@@ -27,6 +28,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: true,
     code: "",
+    solution: "",
     color: "#423f28",
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
@@ -64,6 +66,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: true,
     code: "",
+    solution: "",
     color: "#423f28",
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
@@ -103,6 +106,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: true,
     customInput: false,
     code: "",
+    solution: "",
     color: "#284042",
     inputs: [
       {
@@ -120,6 +124,8 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     customInput: false,
     code:
       "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
+    solution:
+      "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
     inputs: [],
     outputs: [
       {
@@ -135,6 +141,30 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: false,
     customInput: false,
     code: `function Lightness({
+      Amount,
+      Frame
+    }: {
+      Amount: number;
+      Frame: ImageData;
+    }): { Frame: ImageData } {
+      // Copia i pixel dell'immagine
+      const newData = new ImageData(Frame.width, Frame.height);
+    
+      // Per ogni pixel...
+      for (let i = 0; i < Frame.data.length; i += 4) {
+        const R = Frame.data[i];
+        const G = Frame.data[i + 1];
+        const B = Frame.data[i + 2];
+    
+        newData.data[i] = R * Amount;
+        newData.data[i + 1] = G * Amount;
+        newData.data[i + 2] = B * Amount;
+        newData.data[i + 3] = 255;
+      }
+    
+      return { Frame: newData };
+    }`,
+    solution: `function Lightness({
       Amount,
       Frame
     }: {
@@ -208,6 +238,31 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { YUVFrame: newData };
     }`,
+    solution: `function RGBtoYUV({ Frame }: { Frame: ImageData }):{ YUVFrame: ImageData } {
+      // Copia i pixel dell'immagine
+      const newData = new ImageData(Frame.width, Frame.height);
+    
+      // Per ogni pixel...
+      for (let i = 0; i < Frame.data.length; i += 4) {
+        // Estrae i valori di RGB
+        const R = Frame.data[i];
+        const G = Frame.data[i + 1];
+        const B = Frame.data[i + 2];
+    
+        // Calcola i valori di YUV applicando una moltiplicazione matriciale
+        const Y = 0.257 * R + 0.504 * G + 0.098 * B + 16;
+        const U = -0.148 * R - 0.291 * G + 0.439 * B + 128;
+        const V = 0.439 * R - 0.368 * G - 0.071 * B + 128;
+    
+        // Salva i valori di YUV sulla copia dell'immagine
+        newData.data[i] = Y;
+        newData.data[i + 1] = U;
+        newData.data[i + 2] = V;
+        newData.data[i + 3] = 255;
+      }
+    
+      return { YUVFrame: newData };
+    }`,
     inputs: [
       {
         label: "Frame",
@@ -229,6 +284,14 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: false,
     customInput: false,
     code: `function ChromaKeyUV({ YUVFrame, pU,pV,radius }: { YUVFrame: ImageData;pU:number;pV:number;radius:number }): { Mask: {data:boolean[];width:number;height:number} } {
+      // Crea una maschera vuota
+      const data = new Array<boolean>(YUVFrame.width * YUVFrame.height).fill(false);
+
+      // COMPLETA QUI
+
+      return { Mask:{data,width:YUVFrame.width,height:YUVFrame.height} };
+    }`,
+    solution: `function ChromaKeyUV({ YUVFrame, pU,pV,radius }: { YUVFrame: ImageData;pU:number;pV:number;radius:number }): { Mask: {data:boolean[];width:number;height:number} } {
       // Crea una maschera vuota
       const data = new Array<boolean>(YUVFrame.width * YUVFrame.height).fill(false);
     
@@ -289,6 +352,34 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     hardcoded: false,
     customInput: false,
     code: `const a_step = 0.1;
+    const r_step = 4.0;
+    const max_r = 400.0;
+    
+    function Hough({ YUVFrame, Mask }: { YUVFrame: ImageData;Mask: {data:boolean[];width:number;height:number} }): { A:number;R:number;A_Deg:number } {
+      // Accumulatore
+  const alpha_steps = Math.round(Math.PI / a_step) + 1;
+  const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
+  const accumulator = new Array(alpha_steps * r_steps).fill(0);
+
+  // Variabili per immagazzinare i massimi trovati
+  let current_a = 0;
+  let current_r = 0;
+  let current_max = 0;
+
+  for (let i = 0; i < YUVFrame.data.length; i += 4) {
+    const maskValue = Mask.data[i / 4];
+    const imgY = YUVFrame.data[i + 0];
+
+    const x = (i / 4) % YUVFrame.width;
+    const y = Math.floor(i / 4 / YUVFrame.width);
+
+    // COMPLETA QUI
+
+  }
+
+  return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+    }`,
+    solution: `const a_step = 0.1;
     const r_step = 4.0;
     const max_r = 400.0;
     
@@ -412,6 +503,44 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Frame: newData };
     }`,
+    solution: `function DrawLine({
+      Frame,
+      A,
+      R
+    }: {
+      Frame: ImageData;
+      A: number;
+      R: number;
+    }): { Frame: ImageData } {
+      const newData = new ImageData(Frame.width, Frame.height);
+    
+      for (let i = 0; i < Frame.data.length; i += 4) {
+        const R = Frame.data[i];
+        const G = Frame.data[i + 1];
+        const B = Frame.data[i + 2];
+    
+        newData.data[i] = R;
+        newData.data[i + 1] = G;
+        newData.data[i + 2] = B;
+        newData.data[i + 3] = 255;
+      }
+    
+      A = -A - (90 * Math.PI) / 180;
+    
+      for (let x = 0; x < Frame.width; x++) {
+        const px = (x * 2) / Frame.width - 1;
+        const s = Frame.width / Math.cos(A);
+        const py = px * Math.sin(A) * s;
+    
+        const y = Math.round(Frame.height / 2 - py / 2);
+        const i = (x + y * Frame.width) * 4;
+        newData.data[i] = 255;
+        newData.data[i + 1] = 255;
+        newData.data[i + 2] = 255;
+      }
+    
+      return { Frame: newData };
+    }`,
     inputs: [
       {
         label: "Frame",
@@ -440,5 +569,6 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
 ].map(template => ({
   ...template,
   code: formatCode(template.code),
+  solution: formatCode(template.solution),
   fn: getFunctionFromCode(template.code),
 }));
