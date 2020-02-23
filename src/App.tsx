@@ -49,7 +49,7 @@ const useStyles = makeStyles(theme => ({
   },
   containerVert: {
     width: "100%",
-    height: "100%",
+    height: "calc(100% - 52px)",
   },
   containerHoriz: {
     borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
