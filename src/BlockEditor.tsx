@@ -217,17 +217,21 @@ const BlockTemplateRender = React.memo(function BlockTemplateRender<
   onMoveEnd = () => {},
   inputs = [],
   outputs = [],
+  parentRef,
 }: {
   onMove(point: PosObject): void;
   onMoveStart(type: string, point: PosObject): void;
   onMoveEnd(): void;
+  parentRef: React.RefObject<HTMLDivElement>;
 } & BlockTemplate<TBlockInfo, TPortInfo>) {
   const classes = useStyles({});
 
   const bind = useDrag(({ xy: [x, y], first, last }) => {
-    if (first) onMoveStart(type, { x, y });
+    const rect = parentRef.current.getBoundingClientRect();
+
+    if (first) onMoveStart(type, { x: x - rect.x, y: y - rect.y });
     if (last) onMoveEnd();
-    onMove({ x, y });
+    onMove({ x: x - rect.x, y: y - rect.y });
   });
 
   return (
@@ -257,11 +261,16 @@ const BlockTemplateRender = React.memo(function BlockTemplateRender<
   );
 });
 
-function getIOPortPos(element: HTMLElement, right: boolean) {
+function getIOPortPos(
+  element: HTMLElement,
+  right: boolean,
+  scrollOffsetX: number,
+  scrollOffsetY: number
+) {
   const rect = element.getBoundingClientRect();
   return {
-    x: right ? rect.right : rect.x,
-    y: rect.y + rect.height / 2,
+    x: (right ? rect.right : rect.x) + scrollOffsetX,
+    y: rect.y + rect.height / 2 + scrollOffsetY,
   };
 }
 
@@ -278,6 +287,7 @@ const BlockRender = React.memo(function BlockRender({
   renderIODecoration,
   block,
   customParams,
+  parentRef,
 }: {
   x: number;
   y: number;
@@ -291,6 +301,7 @@ const BlockRender = React.memo(function BlockRender({
   renderIODecoration: (port: IOPortInst<any>) => JSX.Element;
   block: Block<any, any>;
   customParams: any;
+  parentRef: React.RefObject<HTMLDivElement>;
 }) {
   const classes = useStyles({});
 
@@ -302,6 +313,8 @@ const BlockRender = React.memo(function BlockRender({
   const divRef = useRef<HTMLDivElement>();
   const firstTimeRef = useRef<number>();
   const bind = useDrag(({ delta: [px, py], time, first, last }) => {
+    const pRect = parentRef.current.getBoundingClientRect();
+
     if (first) firstTimeRef.current = time;
 
     if (time - firstTimeRef.current < 100) {
@@ -325,18 +338,31 @@ const BlockRender = React.memo(function BlockRender({
 
   const bindIO = useDrag(
     ({ xy: [px, py], first, last, args: [src, right], event }) => {
+      const pRect = parentRef.current.getBoundingClientRect();
+
       if (first) {
         onDragIOStart(
           src,
-          getIOPortPos(ioRefs.current[serializeIOPortInst(src)], right)
+          getIOPortPos(
+            ioRefs.current[serializeIOPortInst(src)],
+            right,
+            parentRef.current.scrollLeft - pRect.x,
+            parentRef.current.scrollTop - pRect.y
+          )
         );
       }
 
-      onDragIO(src, { x: px, y: py });
+      onDragIO(src, {
+        x: px - pRect.x + parentRef.current.scrollLeft,
+        y: py - pRect.y + parentRef.current.scrollTop,
+      });
 
-      const lastElement = document.elementFromPoint(px, py);
+      const lastElements = document.elementsFromPoint(px, py);
+      const lastElement = lastElements.find(e =>
+        e.id.startsWith("block-port-")
+      );
       if (last) {
-        if (lastElement.id.startsWith("block-port-")) {
+        if (lastElement) {
           onDragIOEnd(src, deserializeIOPort(lastElement.id.substring(11)));
         } else {
           onDragIOEnd(src, null);
@@ -519,10 +545,6 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   const classes = useStyles({});
 
   const areaRef = useRef<HTMLDivElement>();
-  const areaRect = useMemo(
-    () => areaRef.current && areaRef.current.getBoundingClientRect(),
-    [areaRef.current, window.innerWidth, window.innerHeight]
-  );
 
   const [draggingTemplate, setDraggingTemplate] = useState(null);
   const handleMoveTemplateStart = useCallback(
@@ -555,14 +577,14 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         ...poss,
         {
           uuid,
-          x: Math.max(0, pos.x - areaRect.x),
-          y: Math.max(0, pos.y - areaRect.y),
+          x: Math.max(0, pos.x),
+          y: Math.max(0, pos.y),
         },
       ]);
 
       setDraggingTemplate(uuid);
     },
-    [templates, areaRect]
+    [templates]
   );
   const handleMoveTemplate = useCallback(
     (pos: PosObject) => {
@@ -571,32 +593,29 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
           b.uuid === draggingTemplate
             ? {
                 ...b,
-                x: Math.max(0, pos.x - areaRect.x),
-                y: Math.max(0, pos.y - areaRect.y),
+                x: Math.max(0, pos.x),
+                y: Math.max(0, pos.y),
               }
             : b
         )
       );
     },
-    [draggingTemplate, areaRect]
+    [draggingTemplate]
   );
   const handleMoveTemplateEnd = useCallback(
     () => setDraggingTemplate(null),
     []
   );
 
-  const handleMoveBlock = useCallback(
-    (uuid: string, pos: PosObject) => {
-      setBlocksPos(poss =>
-        poss.map(block =>
-          block.uuid === uuid
-            ? { ...block, x: Math.max(0, pos.x), y: Math.max(0, pos.y) }
-            : block
-        )
-      );
-    },
-    [areaRect]
-  );
+  const handleMoveBlock = useCallback((uuid: string, pos: PosObject) => {
+    setBlocksPos(poss =>
+      poss.map(block =>
+        block.uuid === uuid
+          ? { ...block, x: Math.max(0, pos.x), y: Math.max(0, pos.y) }
+          : block
+      )
+    );
+  }, []);
   const handleSelectBlock = useCallback((uuid: string) => {
     onSelectBlock(selected => (selected === uuid ? null : uuid));
   }, []);
@@ -608,7 +627,14 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   const handleDragIOStart = useCallback(
     (src: IOPortInst<TPortInfo>, { x, y }) => {
       setLinks(links => [
-        { src, dst: null, ax: x, ay: y, bx: x, by: y },
+        {
+          src,
+          dst: null,
+          ax: x,
+          ay: y,
+          bx: x,
+          by: y,
+        },
         ...links,
       ]);
     },
@@ -666,39 +692,49 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   }, []);
 
   const [linksWithPos, setLinksWithPos] = useState(null);
-  useEffect(
-    () =>
-      setLinksWithPos(
-        links.map(link => {
-          if (link.dst) {
-            const elStart = document.getElementById(
-              "block-port-" + serializeIOPortInst(link.src)
+  useEffect(() => {
+    const pRect = areaRef.current.getBoundingClientRect();
+
+    setLinksWithPos(
+      links.map(link => {
+        if (link.dst) {
+          const elStart = document.getElementById(
+            "block-port-" + serializeIOPortInst(link.src)
+          );
+          const elEnd = document.getElementById(
+            "block-port-" + serializeIOPortInst(link.dst)
+          );
+
+          if (elStart && elEnd) {
+            const posStart = getIOPortPos(
+              elStart,
+              true,
+              areaRef.current.scrollLeft - pRect.x,
+              areaRef.current.scrollTop - pRect.y
             );
-            const elEnd = document.getElementById(
-              "block-port-" + serializeIOPortInst(link.dst)
+            const posEnd = getIOPortPos(
+              elEnd,
+              false,
+              areaRef.current.scrollLeft - pRect.x,
+              areaRef.current.scrollTop - pRect.y
             );
 
-            if (elStart && elEnd) {
-              const posStart = getIOPortPos(elStart, true);
-              const posEnd = getIOPortPos(elEnd, false);
-
-              return {
-                ...link,
-                ax: posStart.x,
-                ay: posStart.y,
-                bx: posEnd.x,
-                by: posEnd.y,
-              };
-            }
-
-            return link;
+            return {
+              ...link,
+              ax: posStart.x,
+              ay: posStart.y,
+              bx: posEnd.x,
+              by: posEnd.y,
+            };
           }
 
           return link;
-        })
-      ),
-    [links, blocksPos]
-  );
+        }
+
+        return link;
+      })
+    );
+  }, [links, blocksPos]);
 
   return (
     <div className={classes.root}>
@@ -711,6 +747,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
               onMove={handleMoveTemplate}
               onMoveStart={handleMoveTemplateStart}
               onMoveEnd={handleMoveTemplateEnd}
+              parentRef={areaRef}
             />
           ))}
         </div>
@@ -745,6 +782,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
                 renderIODecoration={renderIODecoration}
                 block={block}
                 customParams={customParams}
+                parentRef={areaRef}
               />
             );
           })}
@@ -761,6 +799,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
                   "-link-" +
                   (link.dst ? serializeIOPortInst(link.dst) : "tba" + uuidv4())
                 }
+                parentRef={areaRef}
               />
             ))}
         </div>
