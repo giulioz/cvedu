@@ -82,18 +82,27 @@ const drawerSize = 25;
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
     display: "flex",
-    flexDirection: "column",
     width: "100%",
     height: "100%",
+  },
+  blockArea: {
+    height: "100%",
+    flexGrow: 1,
+    overflow: "scroll",
+  },
+  blockAreaInside: {
+    position: "relative",
+    width: "5000px",
+    height: "5000px",
   },
   drawer: {
     borderRight: "1px solid rgba(255, 255, 255, 0.12)",
     width: theme.spacing(drawerSize),
-    flexGrow: 1,
     display: "flex",
     justifyContent: "flex-start",
     alignItems: "center",
     flexDirection: "column",
+    height: "100%",
   },
   drawerScroll: {
     display: "flex",
@@ -509,6 +518,12 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
 }) {
   const classes = useStyles({});
 
+  const areaRef = useRef<HTMLDivElement>();
+  const areaRect = useMemo(
+    () => areaRef.current && areaRef.current.getBoundingClientRect(),
+    [areaRef.current, window.innerWidth, window.innerHeight]
+  );
+
   const [draggingTemplate, setDraggingTemplate] = useState(null);
   const handleMoveTemplateStart = useCallback(
     (type: string, pos: { x: number; y: number }) => {
@@ -536,30 +551,52 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         return [...blocks, newBlock];
       });
 
-      setBlocksPos(poss => [...poss, { uuid, x: pos.x, y: pos.y }]);
+      setBlocksPos(poss => [
+        ...poss,
+        {
+          uuid,
+          x: Math.max(0, pos.x - areaRect.x),
+          y: Math.max(0, pos.y - areaRect.y),
+        },
+      ]);
 
       setDraggingTemplate(uuid);
     },
-    [templates]
+    [templates, areaRect]
   );
   const handleMoveTemplate = useCallback(
     (pos: PosObject) => {
       return setBlocksPos(poss =>
-        poss.map(b => (b.uuid === draggingTemplate ? { ...b, ...pos } : b))
+        poss.map(b =>
+          b.uuid === draggingTemplate
+            ? {
+                ...b,
+                x: Math.max(0, pos.x - areaRect.x),
+                y: Math.max(0, pos.y - areaRect.y),
+              }
+            : b
+        )
       );
     },
-    [draggingTemplate]
+    [draggingTemplate, areaRect]
   );
   const handleMoveTemplateEnd = useCallback(
     () => setDraggingTemplate(null),
     []
   );
 
-  const handleMoveBlock = useCallback((uuid: string, pos: PosObject) => {
-    setBlocksPos(poss =>
-      poss.map(block => (block.uuid === uuid ? { ...block, ...pos } : block))
-    );
-  }, []);
+  const handleMoveBlock = useCallback(
+    (uuid: string, pos: PosObject) => {
+      setBlocksPos(poss =>
+        poss.map(block =>
+          block.uuid === uuid
+            ? { ...block, x: Math.max(0, pos.x), y: Math.max(0, pos.y) }
+            : block
+        )
+      );
+    },
+    [areaRect]
+  );
   const handleSelectBlock = useCallback((uuid: string) => {
     onSelectBlock(selected => (selected === uuid ? null : uuid));
   }, []);
@@ -665,19 +702,6 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
 
   return (
     <div className={classes.root}>
-      {linksWithPos &&
-        linksWithPos.map(link => (
-          <LinkRender
-            link={link}
-            onDoubleClick={handleRemoveLink}
-            key={
-              (link.src ? serializeIOPortInst(link.src) : "tba" + uuidv4()) +
-              "-link-" +
-              (link.dst ? serializeIOPortInst(link.dst) : "tba" + uuidv4())
-            }
-          />
-        ))}
-
       <div className={classes.drawer}>
         <div className={classes.drawerScroll}>
           {templates.map(block => (
@@ -701,27 +725,46 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         </Button> */}
       </div>
 
-      {blocks.map((block: Block<TBlockInfo, TPortInfo>) => {
-        const { x, y } = blocksPos.find(p => p.uuid === block.uuid);
+      <div ref={areaRef} className={classes.blockArea}>
+        <div ref={areaRef} className={classes.blockAreaInside}>
+          {blocks.map((block: Block<TBlockInfo, TPortInfo>) => {
+            const { x, y } = blocksPos.find(p => p.uuid === block.uuid);
 
-        return (
-          <BlockRender
-            x={x}
-            y={y}
-            key={block.uuid}
-            selected={selectedBlock === block.uuid}
-            onSelect={handleSelectBlock}
-            onMove={handleMoveBlock}
-            onDelete={handleDeleteBlock}
-            onDragIOStart={handleDragIOStart}
-            onDragIO={handleDragIO}
-            onDragIOEnd={handleDragIOEnd}
-            renderIODecoration={renderIODecoration}
-            block={block}
-            customParams={customParams}
-          />
-        );
-      })}
+            return (
+              <BlockRender
+                x={x}
+                y={y}
+                key={block.uuid}
+                selected={selectedBlock === block.uuid}
+                onSelect={handleSelectBlock}
+                onMove={handleMoveBlock}
+                onDelete={handleDeleteBlock}
+                onDragIOStart={handleDragIOStart}
+                onDragIO={handleDragIO}
+                onDragIOEnd={handleDragIOEnd}
+                renderIODecoration={renderIODecoration}
+                block={block}
+                customParams={customParams}
+              />
+            );
+          })}
+
+          {linksWithPos &&
+            linksWithPos.map(link => (
+              <LinkRender
+                link={link}
+                onDoubleClick={handleRemoveLink}
+                key={
+                  (link.src
+                    ? serializeIOPortInst(link.src)
+                    : "tba" + uuidv4()) +
+                  "-link-" +
+                  (link.dst ? serializeIOPortInst(link.dst) : "tba" + uuidv4())
+                }
+              />
+            ))}
+        </div>
+      </div>
     </div>
   );
 }
