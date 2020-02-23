@@ -21,10 +21,11 @@
     "react-icons": "^3.9.0",
     "react-scripts": "3.2.0",
     "react-spring": "^8.0.27",
-    "react-three-fiber": "^3.0.15",
     "react-use-gesture": "^6.0.14",
-    "three": "^0.111.0",
-    "typescript": "^3.7.2"
+    "typescript": "^3.7.2",
+    "@react-spring/three": "9.0.0-beta.33",
+    "react-three-fiber": "4.0.17",
+    "three": "0.113.2"
   },
   "scripts": {
     "start": "react-scripts start",

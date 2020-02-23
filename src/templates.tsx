@@ -119,6 +119,23 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
   },
 
   {
+    type: "Game",
+    hardcoded: true,
+    customInput: false,
+    code: "",
+    solution: "",
+    color: "#284042",
+    inputs: [
+      {
+        label: "Angle",
+        type: "input" as const,
+        valueType: "number" as const,
+      },
+    ],
+    outputs: [],
+  },
+
+  {
     type: "RandomNumber",
     hardcoded: false,
     customInput: false,

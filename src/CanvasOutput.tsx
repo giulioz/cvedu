@@ -43,11 +43,12 @@ export default React.memo(function CanvasOutput({
   handler,
   onError,
   title,
+  ...rest
 }: {
   handler(data: ImageData): ImageData | null;
   onError: (error: any) => void;
   title: string;
-}) {
+} & any) {
   const classes = useStyles({});
 
   const video = useWebcam();
@@ -145,7 +146,7 @@ export default React.memo(function CanvasOutput({
   useAnimLoop(animLoop);
 
   return (
-    <div className={classes.root}>
+    <div className={classes.root} {...rest}>
       {underPixelColor && (
         <div className={classes.tooltip}>{underPixelColor}</div>
       )}
