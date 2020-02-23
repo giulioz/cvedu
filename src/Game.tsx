@@ -1,10 +1,4 @@
-import React, {
-  Suspense,
-  useMemo,
-  useEffect,
-  useState,
-  useLayoutEffect,
-} from "react";
+import React, { Suspense, useMemo, useEffect, useState } from "react";
 import {
   Canvas,
   useLoader,
@@ -200,7 +194,8 @@ function Scene({ currentLane }) {
   const envCube = useEquirectangolarEnv("/game/env.hdr");
   useEffect(() => {
     scene.background = envCube;
-  }, [scene.background, envCube]);
+    scene.fog = new THREE.Fog(0xefefef, 0, 200);
+  }, [scene.fog, scene.background, envCube]);
 
   const [t, setT] = useState(0);
   const speed = 15.0;
@@ -240,7 +235,6 @@ function Scene({ currentLane }) {
         shadow-mapSize-width={2048 * 2}
         shadow-mapSize-height={2048 * 2}
       />
-      {/* <fog attach="fog" args={[0xefefef, 0, 200]} /> */}
 
       <Road envCube={envCube} t={t} />
 
