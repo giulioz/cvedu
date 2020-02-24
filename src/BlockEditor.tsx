@@ -231,9 +231,16 @@ const BlockTemplateRender = React.memo(function BlockTemplateRender<
   const bind = useDrag(({ xy: [x, y], first, last }) => {
     const rect = parentRef.current.getBoundingClientRect();
 
-    if (first) onMoveStart(type, { x: x - rect.x, y: y - rect.y });
+    if (first)
+      onMoveStart(type, {
+        x: x - rect.x + parentRef.current.scrollLeft,
+        y: y - rect.y + parentRef.current.scrollTop,
+      });
     if (last) onMoveEnd();
-    onMove({ x: x - rect.x, y: y - rect.y });
+    onMove({
+      x: x - rect.x + parentRef.current.scrollLeft,
+      y: y - rect.y + parentRef.current.scrollTop,
+    });
   });
 
   return (
