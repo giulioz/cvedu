@@ -564,6 +564,50 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
   },
 
   {
+    type: "Ransac",
+    hardcoded: false,
+    customInput: false,
+    code: `function Ransac({
+      Mask,
+    }: {
+      Mask: { data: boolean[]; width: number; height: number };
+    }):  { A: number; R: number; A_Deg: number }  {
+      return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+    }`,
+    solution: `function Ransac({
+      Mask,
+    }: {
+      Mask: { data: boolean[]; width: number; height: number };
+    }):  { A: number; R: number; A_Deg: number }  {
+      return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+    }`,
+    inputs: [
+      {
+        label: "Mask",
+        type: "input" as const,
+        valueType: "mask" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "A",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "R",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+      {
+        label: "A_Deg",
+        type: "output" as const,
+        valueType: "number" as const,
+      },
+    ],
+  },
+
+  {
     type: "DrawLine",
     hardcoded: false,
     customInput: false,
