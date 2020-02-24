@@ -14,6 +14,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     height: "100%",
     display: "flex",
     justifyContent: "center",
+    alignItems: "center",
   },
   canvas: {
     maxWidth: "100%",
