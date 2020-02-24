@@ -59,3 +59,30 @@ export function maskToImageData(mask: {
 
   return newData;
 }
+
+export function accumulatorToImageData(acc: {
+  data: number[];
+  width: number;
+  height: number;
+  alpha_steps: number;
+  r_steps: number;
+}) {
+  const newData = new ImageData(acc.width, acc.height);
+  const max = Math.max(...acc.data);
+
+  for (let i = 0; i < newData.data.length; i += 4) {
+    const pos = i / 4;
+    const px = pos % acc.width;
+    const py = Math.floor(pos / acc.width);
+    const aPos = Math.round((px / acc.width) * acc.alpha_steps);
+    const rPos = Math.round((py / acc.height) * acc.r_steps);
+
+    const d = acc.data[aPos + rPos * acc.alpha_steps];
+    newData.data[i] = (d / max) * 255;
+    newData.data[i + 1] = (d / max) * 255;
+    newData.data[i + 2] = (d / max) * 255;
+    newData.data[i + 3] = 255;
+  }
+
+  return newData;
+}

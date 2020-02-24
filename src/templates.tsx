@@ -136,70 +136,48 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
   },
 
   {
-    type: "RandomNumber",
+    type: "ChromaComposite",
     hardcoded: false,
     customInput: false,
-    code:
-      "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
-    solution:
-      "function RandomNumber():{Number:number}{return {Number:Math.random()}}",
-    inputs: [],
-    outputs: [
-      {
-        label: "Number",
-        type: "output" as const,
-        valueType: "number" as const,
-      },
-    ],
-  },
-
-  {
-    type: "Lightness",
-    hardcoded: false,
-    customInput: false,
-    code: `function Lightness({
-      Amount,
-      Frame
+    code: `function ChromaComposite({
+      Mask,
+      FrameA,
+      FrameB,
     }: {
-      Amount: number;
-      Frame: ImageData;
+      Mask: {data:boolean[];width:number;height:number};
+      FrameA: ImageData;
+      FrameB: ImageData
     }): { Frame: ImageData } {
       // Copia i pixel dell'immagine
-      const newData = new ImageData(Frame.width, Frame.height);
+      const newData = new ImageData(FrameA.width, FrameA.height);
     
-      // Per ogni pixel...
-      for (let i = 0; i < Frame.data.length; i += 4) {
-        const R = Frame.data[i];
-        const G = Frame.data[i + 1];
-        const B = Frame.data[i + 2];
-    
-        newData.data[i] = R * Amount;
-        newData.data[i + 1] = G * Amount;
-        newData.data[i + 2] = B * Amount;
-        newData.data[i + 3] = 255;
-      }
+      // COMPLETA QUI
     
       return { Frame: newData };
     }`,
-    solution: `function Lightness({
-      Amount,
-      Frame
+    solution: `function ChromaComposite({
+      Mask,
+      FrameA,
+      FrameB,
     }: {
-      Amount: number;
-      Frame: ImageData;
+      Mask: {data:boolean[];width:number;height:number};
+      FrameA: ImageData;
+      FrameB: ImageData
     }): { Frame: ImageData } {
       // Copia i pixel dell'immagine
-      const newData = new ImageData(Frame.width, Frame.height);
+      const newData = new ImageData(FrameA.width, FrameA.height);
     
-      // Per ogni pixel...
-      for (let i = 0; i < Frame.data.length; i += 4) {
-        const R = Frame.data[i];
-        const G = Frame.data[i + 1];
-        const B = Frame.data[i + 2];
-    
-        newData.data[i] = R * Amount;
-        newData.data[i + 1] = G * Amount;
-        newData.data[i + 2] = B * Amount;
+      for (let i = 0; i < FrameA.data.length; i += 4) {
+        if (Mask.data[i]) {
+          newData.data[i] = FrameA.data[i];
+          newData.data[i + 1] = FrameA.data[i + 1];
+          newData.data[i + 2] = FrameA.data[i + 2];
+        } else {
+          newData.data[i] = FrameB.data[i]
+          newData.data[i + 1] = FrameB.data[i + 1]
+          newData.data[i + 2] = FrameB.data[i + 2]
+        }
+
         newData.data[i + 3] = 255;
       }
     
@@ -207,12 +185,17 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     }`,
     inputs: [
       {
-        label: "Amount",
+        label: "Mask",
         type: "input" as const,
-        valueType: "number" as const,
+        valueType: "mask" as const,
       },
       {
-        label: "Frame",
+        label: "FrameA",
+        type: "input" as const,
+        valueType: "imagedata" as const,
+      },
+      {
+        label: "FrameB",
         type: "input" as const,
         valueType: "imagedata" as const,
       },
@@ -372,80 +355,104 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     const r_step = 4.0;
     const max_r = 400.0;
     
-    function Hough({ YUVFrame, Mask }: { YUVFrame: ImageData;Mask: {data:boolean[];width:number;height:number} }): { A:number;R:number;A_Deg:number } {
+    function Hough({
+      YUVFrame,
+      Mask,
+    }: {
+      YUVFrame: ImageData;
+      Mask: { data: boolean[]; width: number; height: number };
+    }): {
+      Accumulator: {
+        data: number[];
+        width: number;
+        height: number;
+        alpha_steps: number;
+        r_steps: number;
+      };
+    } {
       // Accumulatore
-  const alpha_steps = Math.round(Math.PI / a_step) + 1;
-  const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
-  const accumulator = new Array(alpha_steps * r_steps).fill(0);
-
-  // Variabili per immagazzinare i massimi trovati
-  let current_a = 0;
-  let current_r = 0;
-  let current_max = 0;
-
-  for (let i = 0; i < YUVFrame.data.length; i += 4) {
-    const maskValue = Mask.data[i / 4];
-    const imgY = YUVFrame.data[i + 0];
-
-    const x = (i / 4) % YUVFrame.width;
-    const y = Math.floor(i / 4 / YUVFrame.width);
-
-    // COMPLETA QUI
-
-  }
-
-  return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+      const alpha_steps = Math.round(Math.PI / a_step) + 1;
+      const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
+      const accData = new Array(alpha_steps * r_steps).fill(0);
+    
+      for (let i = 0; i < YUVFrame.data.length; i += 4) {
+        const maskValue = Mask.data[i / 4];
+        const imgY = YUVFrame.data[i + 0];
+    
+        const x = (i / 4) % YUVFrame.width;
+        const y = Math.floor(i / 4 / YUVFrame.width);
+    
+        // COMPLETA QUI
+      }
+    
+      return {
+        Accumulator: {
+          data: accData,
+          width: Mask.width,
+          height: Mask.height,
+          alpha_steps,r_steps
+        },
+      };
     }`,
     solution: `const a_step = 0.1;
     const r_step = 4.0;
     const max_r = 400.0;
     
-    function Hough({ YUVFrame, Mask }: { YUVFrame: ImageData;Mask: {data:boolean[];width:number;height:number} }): { A:number;R:number;A_Deg:number } {
+    function Hough({
+      YUVFrame,
+      Mask,
+    }: {
+      YUVFrame: ImageData;
+      Mask: { data: boolean[]; width: number; height: number };
+    }): {
+      Accumulator: {
+        data: number[];
+        width: number;
+        height: number;
+        alpha_steps: number;
+        r_steps: number;
+      };
+    } {
       // Accumulatore
-  const alpha_steps = Math.round(Math.PI / a_step) + 1;
-  const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
-  const accumulator = new Array(alpha_steps * r_steps).fill(0);
-
-  // Variabili per immagazzinare i massimi trovati
-  let current_a = 0;
-  let current_r = 0;
-  let current_max = 0;
-
-  for (let i = 0; i < YUVFrame.data.length; i += 4) {
-    const maskValue = Mask.data[i / 4];
-    const imgY = YUVFrame.data[i + 0];
-
-    const x = (i / 4) % YUVFrame.width;
-    const y = Math.floor(i / 4 / YUVFrame.width);
-
-    // Se un pixel è stato selezionato dalla maschera può far parte della barra
-    if (maskValue) {
-      // Creo la sua curva trasformata iterando per ogni angolo
-      for (let a = 0.0; a < Math.PI; a += a_step) {
-        // Calcolo il parametro r per tale angolo
-        const r = x * Math.cos(a) + y * Math.sin(a);
-
-        // Se tale parametro è compreso nei bound attesi...
-        if (r > -max_r && r < max_r) {
-          // Calcolo la cella nell'accumulatore
-          const r_pos = Math.round((r + max_r) / r_step);
-          const a_pos = Math.round(a / a_step);
-
-          // E vi aggiungo il valore della luminanza
-          accumulator[a_pos + r_pos * alpha_steps] += imgY;
-
-          // Controllo se il valore ottenuto è superiore al massimo attuale
-          if (accumulator[a_pos + r_pos * alpha_steps] > current_max) {
-            current_max = accumulator[a_pos + r_pos * alpha_steps];
-            current_a = a;
-            current_r = r;
+      const alpha_steps = Math.round(Math.PI / a_step) + 1;
+      const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
+      const accData = new Array(alpha_steps * r_steps).fill(0);
+    
+      for (let i = 0; i < YUVFrame.data.length; i += 4) {
+        const maskValue = Mask.data[i / 4];
+        const imgY = YUVFrame.data[i + 0];
+    
+        const x = (i / 4) % YUVFrame.width;
+        const y = Math.floor(i / 4 / YUVFrame.width);
+    
+        // Se un pixel è stato selezionato dalla maschera può far parte della barra
+        if (maskValue) {
+          // Creo la sua curva trasformata iterando per ogni angolo
+          for (let a = 0.0; a < Math.PI; a += a_step) {
+            // Calcolo il parametro r per tale angolo
+            const r = x * Math.cos(a) + y * Math.sin(a);
+    
+            // Se tale parametro è compreso nei bound attesi...
+            if (r > -max_r && r < max_r) {
+              // Calcolo la cella nell'accumulatore
+              const r_pos = Math.floor((r + max_r) / r_step);
+              const a_pos = Math.floor(a / a_step);
+    
+              // E vi aggiungo il valore della luminanza
+              accData[a_pos + r_pos * alpha_steps] += imgY;
+            }
           }
         }
       }
-    }
-  }
-
-  return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+    
+      return {
+        Accumulator: {
+          data: accData,
+          width: Mask.width,
+          height: Mask.height,
+          alpha_steps,r_steps
+        },
+      };
     }`,
     inputs: [
       {
@@ -457,6 +464,84 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         label: "Mask",
         type: "input" as const,
         valueType: "mask" as const,
+      },
+    ],
+    outputs: [
+      {
+        label: "Accumulator",
+        type: "output" as const,
+        valueType: "accumulator" as const,
+      },
+    ],
+  },
+
+  {
+    type: "HoughMax",
+    hardcoded: false,
+    customInput: false,
+    code: `const a_step = 0.01;
+    const r_step = 4.0;
+    const max_r = 400.0;
+
+    function HoughMax({
+      Accumulator,
+    }: {
+      Accumulator: {
+        data: number[];
+        width: number;
+        height: number;
+        alpha_steps: number;
+        r_steps: number;
+      };
+    }): { A: number; R: number; A_Deg: number } {
+      // Variabili per immagazzinare i massimi trovati
+      let current_a = 0;
+      let current_r = 0;
+      let current_max = 0;
+    
+      // COMPLETA QUI
+    
+      return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+    }`,
+    solution: `const a_step = 0.01;
+    const r_step = 4.0;
+    const max_r = 400.0;
+    
+    function HoughMax({
+      Accumulator
+    }: {
+      Accumulator: {
+        data: number[];
+        width: number;
+        height: number;
+        alpha_steps: number;
+        r_steps: number;
+      };
+    }): { A: number; R: number; A_Deg: number } {
+      // Variabili per immagazzinare i massimi trovati
+      let current_a = 0;
+      let current_r = 0;
+      let current_max = 0;
+    
+      for (let r = 0; r < Accumulator.r_steps; r++) {
+        for (let a = 0; a < Accumulator.alpha_steps; a++) {
+          const value = Accumulator.data[a + r * Accumulator.alpha_steps];
+    
+          if (value > current_max) {
+            current_max = value;
+            current_a = a * a_step;
+            current_r = r * r_step - max_r;
+          }
+        }
+      }
+    
+      return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
+    }`,
+    inputs: [
+      {
+        label: "Accumulator",
+        type: "input" as const,
+        valueType: "accumulator" as const,
       },
     ],
     outputs: [

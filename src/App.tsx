@@ -21,7 +21,7 @@ import { DiGithubBadge } from "react-icons/di";
 import { templatesInitial } from "./templates";
 import { usePeriodicRerender, usePersistState } from "./utils";
 import { getFunctionFromCode } from "./codeUtils";
-import { maskToImageData } from "./videoUtils";
+import { maskToImageData, accumulatorToImageData } from "./videoUtils";
 import BlockEditor, { Block, Link, IOPortInst } from "./BlockEditor";
 import {
   NumberIOHelper,
@@ -83,7 +83,12 @@ export type BlockInfo = {
   fn: any;
   customInput: boolean;
 };
-export type ValueType = "string" | "number" | "imagedata" | "mask";
+export type ValueType =
+  | "string"
+  | "number"
+  | "imagedata"
+  | "mask"
+  | "accumulator";
 export type IOPortInfo = { valueType: ValueType };
 
 export default function App() {
@@ -256,7 +261,10 @@ export default function App() {
     const frameOutputName =
       blockToDisplay &&
       blockToDisplay.outputs.find(
-        o => o.valueType === "imagedata" || o.valueType === "mask"
+        o =>
+          o.valueType === "imagedata" ||
+          o.valueType === "mask" ||
+          o.valueType === "accumulator"
       );
     return { frameOutputName, blockToDisplay };
   });
@@ -345,6 +353,12 @@ export default function App() {
 
       if (frameOutputName.valueType === "mask") {
         return maskToImageData(
+          tempResultsRef.current[blockToDisplay.uuid][frameOutputName.label]
+        );
+      }
+
+      if (frameOutputName.valueType === "accumulator") {
+        return accumulatorToImageData(
           tempResultsRef.current[blockToDisplay.uuid][frameOutputName.label]
         );
       }
