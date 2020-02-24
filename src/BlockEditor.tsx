@@ -313,8 +313,6 @@ const BlockRender = React.memo(function BlockRender({
   const divRef = useRef<HTMLDivElement>();
   const firstTimeRef = useRef<number>();
   const bind = useDrag(({ delta: [px, py], time, first, last }) => {
-    const pRect = parentRef.current.getBoundingClientRect();
-
     if (first) firstTimeRef.current = time;
 
     if (time - firstTimeRef.current < 100) {
@@ -358,8 +356,8 @@ const BlockRender = React.memo(function BlockRender({
       });
 
       const lastElements = document.elementsFromPoint(px, py);
-      const lastElement = lastElements.find(e =>
-        e.id.startsWith("block-port-")
+      const lastElement = lastElements.find(
+        e => e.id.startsWith("block-port-") && !e.id.includes(uuid)
       );
       if (last) {
         if (lastElement) {
