@@ -132,6 +132,7 @@ const useStyles = makeStyles((theme: Theme) => ({
       0px 1px 1px 0px rgba(0, 0, 0, 0.14),
       0px 1px 3px 0px rgba(0, 0, 0, 0.12)`,
     userSelect: "none",
+    zIndex: 1000,
   },
   selected: {
     border: "2px solid rgba(255, 0, 0, 0.32)",
