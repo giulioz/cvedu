@@ -109,6 +109,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "flex-start",
+    marginBottom: theme.spacing(1),
 
     overflow: "scroll",
     flexGrow: 1,
@@ -117,7 +118,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     "& $block": {
       position: "static",
       transform: "translate(0, 0)",
-      margin: theme.spacing(2),
+      margin: theme.spacing(1),
     },
   },
   block: {
