@@ -1,16 +1,17 @@
 import React, { useState, useRef } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import { Grid, Slider, Input } from "@material-ui/core";
+import { Grid, Slider, Input, Select, MenuItem } from "@material-ui/core";
 import { useDrag } from "react-use-gesture";
 
 import { Block } from "./BlockEditor";
+import { useDefaultInputImages } from "./inputImages";
 
 const useStyles = makeStyles(theme => ({
   numberHelper: {
     paddingLeft: theme.spacing(1),
     paddingRight: theme.spacing(1),
   },
-  numberField:{
+  numberField: {
     width: theme.spacing(4),
   },
   yuvRoot: {
@@ -27,6 +28,13 @@ const useStyles = makeStyles(theme => ({
     borderRadius: "100%",
     border: "1px solid black",
     position: "absolute",
+  },
+  frameRoot: {
+    margin: theme.spacing(1),
+    width: theme.spacing(20),
+  },
+  frameSelect: {
+    width: "100%",
   },
 }));
 
@@ -146,6 +154,58 @@ export const UVInputHelper = React.memo(function UVInputHelper<
         className={classes.pickerPoint}
         style={{ left: tempValue.x, top: tempValue.y }}
       ></div>
+    </div>
+  );
+});
+
+export const FrameInputHelper = React.memo(function FrameInputHelper<
+  BlockInfo,
+  IOPortInfo
+>({
+  customValues,
+  setCustomValues,
+  block,
+}: {
+  customValues: { [key: string]: any };
+  setCustomValues: (
+    fn: (old: { [key: string]: any }) => { [key: string]: any }
+  ) => void;
+  block: Block<BlockInfo, IOPortInfo>;
+}) {
+  const classes = useStyles({});
+
+  const images = useDefaultInputImages();
+
+  const value = customValues[block.uuid]
+    ? customValues[block.uuid].selected
+    : -1;
+
+  function handleChange(event: React.ChangeEvent<{ value: number }>) {
+    const i = event.target.value;
+    const image = images[i];
+
+    setCustomValues(old => ({
+      ...old,
+      [block.uuid]: { selected: i, Frame: image && image.imageData },
+    }));
+  }
+
+  return (
+    <div className={classes.frameRoot}>
+      <Select
+        value={value}
+        onChange={handleChange}
+        className={classes.frameSelect}
+      >
+        <MenuItem key={-1} value={-1}>
+          None
+        </MenuItem>
+        {images.map((image, i) => (
+          <MenuItem key={i} value={i}>
+            {image.label}
+          </MenuItem>
+        ))}
+      </Select>
     </div>
   );
 });

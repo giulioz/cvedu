@@ -2,7 +2,11 @@ import React from "react";
 
 import { BlockInfo, IOPortInfo } from "./App";
 import { formatCode, getFunctionFromCode } from "./codeUtils";
-import { NumberInputHelper, UVInputHelper } from "./InputHelpers";
+import {
+  NumberInputHelper,
+  UVInputHelper,
+  FrameInputHelper,
+} from "./InputHelpers";
 import { Block, BlockTemplate } from "./BlockEditor";
 
 export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
@@ -97,6 +101,41 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         label: "V",
         type: "output" as const,
         valueType: "number" as const,
+      },
+    ],
+  },
+
+  {
+    type: "FrameInput",
+    hardcoded: true,
+    customInput: true,
+    code: "",
+    solution: "",
+    color: "#423f28",
+    customRenderer: (
+      block: Block<BlockInfo, IOPortInfo>,
+      {
+        customValues,
+        setCustomValues,
+      }: {
+        customValues: { [key: string]: any };
+        setCustomValues: (
+          fn: (old: { [key: string]: any }) => { [key: string]: any }
+        ) => void;
+      }
+    ) => (
+      <FrameInputHelper
+        customValues={customValues}
+        setCustomValues={setCustomValues}
+        block={block}
+      />
+    ),
+    inputs: [],
+    outputs: [
+      {
+        label: "Frame",
+        type: "output" as const,
+        valueType: "imagedata" as const,
       },
     ],
   },

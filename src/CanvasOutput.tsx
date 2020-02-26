@@ -110,6 +110,11 @@ export default React.memo(function CanvasOutput({
           const tmp = handler(imageData);
 
           if (tmp) {
+            if (tmp.width !== canvas.width || tmp.height !== canvas.height) {
+              canvas.width = tmp.width;
+              canvas.height = tmp.height;
+            }
+
             imageData = tmp;
           }
         } catch (e) {
@@ -132,6 +137,11 @@ export default React.memo(function CanvasOutput({
           const tmp = handler(imageData);
 
           if (tmp) {
+            if (tmp.width !== canvas.width || tmp.height !== canvas.height) {
+              canvas.width = tmp.width;
+              canvas.height = tmp.height;
+            }
+
             imageData = tmp;
           }
         } catch (e) {
