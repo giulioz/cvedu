@@ -1,5 +1,7 @@
 # cvedu
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/79423ac5-bb90-47be-90fb-c99b73c5ebb5/deploy-status)](https://app.netlify.com/sites/cvedu-test/deploys)
+
 A small React web application to be used to teach principles of Computer Vision, using your webcam, Typescript and a block–based visual editor.
 
 ![screenshoot](./screenshoot.png)
