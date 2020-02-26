@@ -283,7 +283,7 @@ function getIOPortPos(
   };
 }
 
-const BlockRender = React.memo(function BlockRender({
+const BlockRender = React.memo(function BlockRender<TBlockInfo, TPortInfo>({
   x,
   y,
   selected = false,
@@ -307,8 +307,8 @@ const BlockRender = React.memo(function BlockRender({
   onDragIO(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOStart(src: IOPortInst<{}>, point: PosObject): void;
   onDragIOEnd(src: IOPortInst<{}>, dst: IOPortInst<{}> | null): void;
-  renderIODecoration: (port: IOPortInst<any>) => JSX.Element;
-  block: Block<any, any>;
+  renderIODecoration: (port: IOPortInst<TPortInfo>) => JSX.Element;
+  block: Block<TBlockInfo, TPortInfo>;
   customParams: any;
   parentRef: React.RefObject<HTMLDivElement>;
 }) {
@@ -400,7 +400,7 @@ const BlockRender = React.memo(function BlockRender({
             </IconButton>
           </div>
         ),
-        [type, uuid, onDelete]
+        [type, uuid, onDelete, classes.topbar, classes.title]
       )}
       {inputs.map(input => (
         <IOPortRender
@@ -591,7 +591,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
 
       setDraggingTemplate(uuid);
     },
-    [templates]
+    [templates, getUuid, setBlocks, setBlocksPos]
   );
   const handleMoveTemplate = useCallback(
     (pos: PosObject) => {
@@ -607,29 +607,38 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         )
       );
     },
-    [draggingTemplate]
+    [draggingTemplate, setBlocksPos]
   );
   const handleMoveTemplateEnd = useCallback(
     () => setDraggingTemplate(null),
     []
   );
 
-  const handleMoveBlock = useCallback((uuid: string, pos: PosObject) => {
-    setBlocksPos(poss =>
-      poss.map(block =>
-        block.uuid === uuid
-          ? { ...block, x: Math.max(0, pos.x), y: Math.max(0, pos.y) }
-          : block
-      )
-    );
-  }, []);
-  const handleSelectBlock = useCallback((uuid: string) => {
-    onSelectBlock(selected => (selected === uuid ? null : uuid));
-  }, []);
-  const handleDeleteBlock = useCallback((uuid: string) => {
-    setBlocks(blocks => blocks.filter(block => block.uuid !== uuid));
-    setBlocksPos(poss => poss.filter(block => block.uuid !== uuid));
-  }, []);
+  const handleMoveBlock = useCallback(
+    (uuid: string, pos: PosObject) => {
+      setBlocksPos(poss =>
+        poss.map(block =>
+          block.uuid === uuid
+            ? { ...block, x: Math.max(0, pos.x), y: Math.max(0, pos.y) }
+            : block
+        )
+      );
+    },
+    [setBlocksPos]
+  );
+  const handleSelectBlock = useCallback(
+    (uuid: string) => {
+      onSelectBlock(selected => (selected === uuid ? null : uuid));
+    },
+    [onSelectBlock]
+  );
+  const handleDeleteBlock = useCallback(
+    (uuid: string) => {
+      setBlocks(blocks => blocks.filter(block => block.uuid !== uuid));
+      setBlocksPos(poss => poss.filter(block => block.uuid !== uuid));
+    },
+    [setBlocks, setBlocksPos]
+  );
 
   const handleDragIOStart = useCallback(
     (src: IOPortInst<TPortInfo>, { x, y }) => {
@@ -645,18 +654,21 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         ...links,
       ]);
     },
-    []
+    [setLinks]
   );
-  const handleDragIO = useCallback((src: IOPortInst<TPortInfo>, { x, y }) => {
-    setLinks(links =>
-      links.map(l =>
-        serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
-        l.dst === null
-          ? { ...l, bx: x, by: y }
-          : l
-      )
-    );
-  }, []);
+  const handleDragIO = useCallback(
+    (src: IOPortInst<TPortInfo>, { x, y }) => {
+      setLinks(links =>
+        links.map(l =>
+          serializeIOPortInst(l.src) === serializeIOPortInst(src) &&
+          l.dst === null
+            ? { ...l, bx: x, by: y }
+            : l
+        )
+      );
+    },
+    [setLinks]
+  );
   const handleDragIOEnd = useCallback(
     (src: IOPortInst<TPortInfo>, dst: IOPortInst<TPortInfo> | null) => {
       if (dst) {
@@ -683,20 +695,23 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
         );
       }
     },
-    [blocks]
+    [blocks, setLinks]
   );
 
-  const handleRemoveLink = useCallback((link: Link<TPortInfo>) => {
-    setLinks(links =>
-      links.filter(
-        l =>
-          !(
-            serializeIOPortInst(link.src) === serializeIOPortInst(l.src) &&
-            serializeIOPortInst(link.dst) === serializeIOPortInst(l.dst)
-          )
-      )
-    );
-  }, []);
+  const handleRemoveLink = useCallback(
+    (link: Link<TPortInfo>) => {
+      setLinks(links =>
+        links.filter(
+          l =>
+            !(
+              serializeIOPortInst(link.src) === serializeIOPortInst(l.src) &&
+              serializeIOPortInst(link.dst) === serializeIOPortInst(l.dst)
+            )
+        )
+      );
+    },
+    [setLinks]
+  );
 
   const [linksWithPos, setLinksWithPos] = useState(null);
   useEffect(() => {
