@@ -467,7 +467,6 @@ const LinkRender = React.memo(function LinkRender({
       }}
       width={width + strokeWidth + markerWidth * 2}
       height={height + strokeWidth + markerHeight * 2}
-      onDoubleClick={() => onDoubleClick(link)}
     >
       <defs>
         <marker
@@ -487,6 +486,7 @@ const LinkRender = React.memo(function LinkRender({
         stroke="#C33"
         strokeWidth={strokeWidth}
         fill="none"
+        onDoubleClick={() => onDoubleClick(link)}
       />
     </svg>
   );
