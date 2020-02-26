@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const config = [{ url: "/logo512.png", label: "React Logo" }];
+const config = [{ url: "/testImage.jpg", label: "Beach" }];
 
 async function fetchImage(url: string) {
   return new Promise<HTMLImageElement>(resolve => {
