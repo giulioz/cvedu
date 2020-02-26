@@ -7,11 +7,6 @@ import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
 import Snackbar from "@material-ui/core/Snackbar";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import TextField from "@material-ui/core/TextField";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
 import Button from "@material-ui/core/Button";
 import Alert from "@material-ui/lab/Alert";
 import AlertTitle from "@material-ui/lab/AlertTitle";
@@ -29,6 +24,7 @@ import {
   ImageIOHelper,
   MaskIOHelper,
 } from "./IOPortsHelpers";
+import { InputDialog } from "./dialogs";
 import CodeEditor from "./CodeEditor";
 import CanvasOutput from "./CanvasOutput";
 import Game from "./Game";
@@ -107,12 +103,15 @@ export default function App() {
   const [templates, setTemplates] = useState(templatesInitial);
 
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
-  const [buildingBlockName, setBuildingBlockName] = useState("");
-  const handleAdd = useCallback(() => {
-    setBuildingBlockName("");
-    setAddBlockDialogOpen(true);
-  }, []);
-  const handleCloseAddBlockDialog = useCallback(() => {
+  const handleOpenAddBlockDialog = useCallback(
+    () => setAddBlockDialogOpen(true),
+    [setAddBlockDialogOpen]
+  );
+  const handleAbortAddBlockDialog = useCallback(
+    () => setAddBlockDialogOpen(false),
+    [setAddBlockDialogOpen]
+  );
+  const handleAddBlock = useCallback(() => {
     // setTemplates(t => [
     //   ...t,
     //   {
@@ -406,6 +405,7 @@ export default function App() {
         return null;
       }
     },
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
     [tempResultsRef, updateIndex]
   );
 
@@ -488,7 +488,7 @@ export default function App() {
               links={validLinks}
               setLinks={handleUpdateLinks}
               templates={templates}
-              onAdd={handleAdd}
+              onAdd={handleOpenAddBlockDialog}
               selectedBlock={selectedBlockID}
               onSelectBlock={setSelectedBlockID}
               renderIODecoration={renderIODecoration}
@@ -497,12 +497,17 @@ export default function App() {
           </div>
         </div>
 
+        <InputDialog
+          open={addBlockDialogOpen}
+          title="Add a new Block"
+          actionLabel="Add"
+          cancelLabel="Cancel"
+          onAbort={handleAbortAddBlockDialog}
+          onAccept={handleAddBlock}
+        />
+
         {useAutoMemo(() => (
-          <Snackbar
-            open={Boolean(currentError)}
-            // autoHideDuration={6000}
-            onClose={handleCloseError}
-          >
+          <Snackbar open={Boolean(currentError)} onClose={handleCloseError}>
             <Alert
               severity="error"
               elevation={6}
@@ -513,32 +518,6 @@ export default function App() {
               <pre>{currentError}</pre>
             </Alert>
           </Snackbar>
-        ))}
-
-        {useAutoMemo(() => (
-          <Dialog open={addBlockDialogOpen} onClose={handleCloseAddBlockDialog}>
-            <DialogTitle>Add a new Block</DialogTitle>
-            <DialogContent>
-              <TextField
-                value={buildingBlockName}
-                onChange={e => setBuildingBlockName(e.target.value)}
-                label="Name"
-                margin="dense"
-                variant="outlined"
-                autoFocus
-                fullWidth
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={handleCloseAddBlockDialog}
-                variant="contained"
-                color="primary"
-              >
-                Add
-              </Button>
-            </DialogActions>
-          </Dialog>
         ))}
       </ThemeProvider>
     </>
