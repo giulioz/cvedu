@@ -3,6 +3,8 @@ import { useAutoMemo, useAutoCallback, useAutoEffect } from "hooks.macro";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
+import blue from "@material-ui/core/colors/blue";
+import pink from "@material-ui/core/colors/pink";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -32,7 +34,14 @@ import Game from "./Game";
 import "./globalStyles.css";
 
 const theme = createMuiTheme({
-  palette: { type: "dark" },
+  palette: {
+    type: "dark",
+    primary: {
+      main: "#e53935",
+    },
+    // primary: blue,
+    secondary: blue,
+  },
   overrides: { MuiAppBar: { root: { zIndex: null } } },
 });
 
@@ -76,6 +85,7 @@ const useStyles = makeStyles(theme => ({
 export type BlockInfo = {
   code: string;
   solution: string;
+  solutionPassword: string;
   fn: any;
   customInput: boolean;
 };
@@ -231,24 +241,41 @@ export default function App() {
     );
   });
 
-  const handleSolution = useAutoCallback(() => {
-    setBlocks(blocks =>
-      blocks.map(b => {
-        if (b.uuid === selectedBlockID) {
-          try {
-            const code = templates.find(t => t.type === b.type).solution;
-            const fn = getFunctionFromCode(code);
-            return { ...b, code, fn };
-          } catch (e) {
-            setCurrentError(String(e));
-          }
+  const [solutionPasswordDialogOpen, setSolutionPasswordDialogOpen] = useState(
+    false
+  );
+  const handleOpenSolutionPasswordDialog = useCallback(
+    () => setSolutionPasswordDialogOpen(true),
+    [setSolutionPasswordDialogOpen]
+  );
+  const handleAbortSolutionPasswordDialog = useCallback(
+    () => setSolutionPasswordDialogOpen(false),
+    [setSolutionPasswordDialogOpen]
+  );
+  const handleSolution = useAutoCallback((password: string) => {
+    if (
+      password === blocks.find(b => b.uuid === selectedBlockID).solutionPassword
+    ) {
+      setBlocks(blocks =>
+        blocks.map(b => {
+          if (b.uuid === selectedBlockID) {
+            try {
+              const code = templates.find(t => t.type === b.type).solution;
+              const fn = getFunctionFromCode(code);
+              return { ...b, code, fn };
+            } catch (e) {
+              setCurrentError(String(e));
+            }
 
-          return b;
-        } else {
-          return b;
-        }
-      })
-    );
+            return b;
+          } else {
+            return b;
+          }
+        })
+      );
+    }
+
+    setSolutionPasswordDialogOpen(false);
   });
 
   const tempResultsRef = useRef<{ [key: string]: { [key: string]: any } }>({});
@@ -474,7 +501,7 @@ export default function App() {
                 initialCode={code}
                 onRun={handleRun}
                 onReset={handleReset}
-                onSolution={handleSolution}
+                onSolution={handleOpenSolutionPasswordDialog}
                 onError={handleError}
               />
             </div>
@@ -502,8 +529,19 @@ export default function App() {
           title="Add a new Block"
           actionLabel="Add"
           cancelLabel="Cancel"
+          fieldLabel="Name"
           onAbort={handleAbortAddBlockDialog}
           onAccept={handleAddBlock}
+        />
+
+        <InputDialog
+          open={solutionPasswordDialogOpen}
+          title="Insert password for solution"
+          actionLabel="Check"
+          cancelLabel="Cancel"
+          fieldLabel="Password"
+          onAbort={handleAbortSolutionPasswordDialog}
+          onAccept={handleSolution}
         />
 
         {useAutoMemo(() => (

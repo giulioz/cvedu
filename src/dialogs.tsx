@@ -11,6 +11,7 @@ export const InputDialog = React.memo(function InputDialog({
   title = "",
   actionLabel = "OK",
   cancelLabel = "Cancel",
+  fieldLabel = "",
   onAbort = () => {},
   onAccept = () => {},
 }: {
@@ -18,6 +19,7 @@ export const InputDialog = React.memo(function InputDialog({
   title: string;
   actionLabel: string;
   cancelLabel: string;
+  fieldLabel: string;
   onAbort: () => void;
   onAccept: (value: string) => void;
 }) {
@@ -34,13 +36,13 @@ export const InputDialog = React.memo(function InputDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onAbort}>
+    <Dialog open={open} onClose={onAbort} fullWidth maxWidth="sm">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <TextField
           value={currentValue}
           onChange={e => setCurrentValue(e.target.value)}
-          label="Name"
+          label={fieldLabel}
           margin="dense"
           variant="outlined"
           autoFocus
@@ -48,7 +50,7 @@ export const InputDialog = React.memo(function InputDialog({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleAbort} variant="contained" color="secondary">
+        <Button onClick={handleAbort} variant="text" color="default">
           {cancelLabel}
         </Button>
         <Button onClick={handleAccept} variant="contained" color="primary">

@@ -16,6 +16,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     customInput: false,
     code: "",
     solution: "",
+    solutionPassword: "test",
     color: "#422828",
     inputs: [],
     outputs: [
@@ -33,6 +34,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     customInput: true,
     code: "",
     solution: "",
+    solutionPassword: "test",
     color: "#423f28",
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
@@ -71,6 +73,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     customInput: true,
     code: "",
     solution: "",
+    solutionPassword: "test",
     color: "#423f28",
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
@@ -111,6 +114,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     customInput: true,
     code: "",
     solution: "",
+    solutionPassword: "test",
     color: "#423f28",
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
@@ -146,6 +150,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     customInput: false,
     code: "",
     solution: "",
+    solutionPassword: "test",
     color: "#284042",
     inputs: [
       {
@@ -163,6 +168,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     customInput: false,
     code: "",
     solution: "",
+    solutionPassword: "test",
     color: "#284042",
     inputs: [
       {
@@ -222,6 +228,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Frame: newData };
     }`,
+    solutionPassword: "test",
     inputs: [
       {
         label: "Mask",
@@ -302,6 +309,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { YUVFrame: newData };
     }`,
+    solutionPassword: "test",
     inputs: [
       {
         label: "Frame",
@@ -355,6 +363,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Mask:{data,width:YUVFrame.width,height:YUVFrame.height} };
     }`,
+    solutionPassword: "test",
     inputs: [
       {
         label: "YUVFrame",
@@ -493,6 +502,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         },
       };
     }`,
+    solutionPassword: "test",
     inputs: [
       {
         label: "YUVFrame",
@@ -576,6 +586,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
     }`,
+    solutionPassword: "test",
     inputs: [
       {
         label: "Accumulator",
@@ -620,6 +631,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     }):  { A: number; R: number; A_Deg: number }  {
       return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
     }`,
+    solutionPassword: "test",
     inputs: [
       {
         label: "Mask",
@@ -726,6 +738,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Frame: newData };
     }`,
+    solutionPassword: "test",
     inputs: [
       {
         label: "Frame",
@@ -755,5 +768,6 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
   ...template,
   code: formatCode(template.code),
   solution: formatCode(template.solution),
+  solutionPassword: "test",
   fn: getFunctionFromCode(template.code),
 }));
