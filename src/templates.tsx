@@ -213,7 +213,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       const newData = new ImageData(FrameA.width, FrameA.height);
     
       for (let i = 0; i < FrameA.data.length; i += 4) {
-        if (Mask.data[i]) {
+        if (Mask.data[i / 4]) {
           newData.data[i] = FrameA.data[i];
           newData.data[i + 1] = FrameA.data[i + 1];
           newData.data[i + 2] = FrameA.data[i + 2];
