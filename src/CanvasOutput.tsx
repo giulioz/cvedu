@@ -56,7 +56,7 @@ export default React.memo(function CanvasOutput({
   const [pausedFrame, setPausedFrame] = useState<null | ImageData>(null);
   const canvasRef = useRef<HTMLCanvasElement>();
 
-  const [underPixelColor, setUnderPixelColor] = useState();
+  const [underPixelColor, setUnderPixelColor] = useState<string>();
 
   const handleMouseMove = useAutoCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
