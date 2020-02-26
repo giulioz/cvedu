@@ -38,7 +38,7 @@ export function useThrottle(handlerFn: () => void, ms: number) {
   useEffect(() => {
     const timeout = setTimeout(handlerFn, ms);
     return () => clearTimeout(timeout);
-  }, [handlerFn]);
+  }, [handlerFn, ms]);
 }
 
 export function usePersistState<T>(
@@ -57,7 +57,7 @@ export function usePersistState<T>(
         console.error("Error deserializing", key, e);
       }
     }
-  }, []);
+  }, [key, setter]);
 
   const handler = useCallback(() => {
     try {
@@ -67,5 +67,6 @@ export function usePersistState<T>(
       console.error("Error serializing", key, e);
     }
   }, [key, value]);
+
   useThrottle(handler, timeout);
 }
