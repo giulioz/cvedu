@@ -41,6 +41,25 @@ export function useThrottle(handlerFn: () => void, ms: number) {
   }, [handlerFn, ms]);
 }
 
+function removeBigData(obj: any) {
+  const nObj = {};
+
+  Object.keys(obj).forEach(uuid => {
+    nObj[uuid] = { ...obj[uuid] };
+
+    Object.keys(obj[uuid]).forEach(paramName => {
+      if (
+        nObj[uuid][paramName] instanceof ImageData ||
+        nObj[uuid][paramName] instanceof HTMLImageElement
+      ) {
+        nObj[uuid][paramName] = null;
+      }
+    });
+  });
+
+  return nObj;
+}
+
 export function usePersistState<T>(
   value: T,
   setter: (value: T) => void,
@@ -61,7 +80,8 @@ export function usePersistState<T>(
 
   const handler = useCallback(() => {
     try {
-      const persistedString = JSON.stringify(value);
+      const obj = value instanceof Array ? value : removeBigData(value);
+      const persistedString = JSON.stringify(obj);
       window.localStorage.setItem(key, persistedString);
     } catch (e) {
       console.error("Error serializing", key, e);

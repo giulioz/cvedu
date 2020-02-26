@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const config = [{ url: "/testImage.jpg", label: "Beach" }];
 
@@ -23,25 +23,30 @@ function getImageData(
   return imageData;
 }
 
-export function useDefaultInputImages(): (typeof config[0] & {
-  image: HTMLImageElement;
-  imageData: ImageData;
-})[] {
-  const [data, setData] = useState([]);
+export function useDefaultInputImages(): [
+  (typeof config[0] & { loaded: boolean })[],
+  React.RefObject<ImageData[]>
+] {
+  const [data, setData] = useState(config.map(c => ({ ...c, loaded: false })));
+
+  const imgsRef = useRef<ImageData[]>([]);
 
   useEffect(() => {
     async function loadImages() {
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
 
-      const loadedImages = await Promise.all(
+      const imagesLoaded = await Promise.all(
         config.map(c => fetchImage(c.url))
+      );
+
+      imagesLoaded.forEach(
+        (img, i) => (imgsRef.current[i] = getImageData(canvas, context, img))
       );
 
       const newData = config.map((d, i) => ({
         ...d,
-        image: loadedImages[i],
-        imageData: getImageData(canvas, context, loadedImages[i]),
+        loaded: true,
       }));
 
       setData(newData);
@@ -50,5 +55,5 @@ export function useDefaultInputImages(): (typeof config[0] & {
     loadImages();
   }, []);
 
-  return data;
+  return [data, imgsRef];
 }

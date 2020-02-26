@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useLayoutEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import { Grid, Slider, Input, Select, MenuItem } from "@material-ui/core";
 import { useDrag } from "react-use-gesture";
@@ -174,7 +174,29 @@ export const FrameInputHelper = React.memo(function FrameInputHelper<
 }) {
   const classes = useStyles({});
 
-  const images = useDefaultInputImages();
+  const [images, imagesRef] = useDefaultInputImages();
+  useLayoutEffect(() => {
+    const toUpdate = Object.keys(customValues).filter(
+      key =>
+        customValues[key].selected !== undefined && !customValues[key].Frame
+    );
+
+    const canUpdate = toUpdate.filter(
+      key => imagesRef.current[customValues[key].selected]
+    );
+
+    if (toUpdate.length > 0 && canUpdate.length > 0) {
+      setCustomValues(old => {
+        const newObj = { ...old };
+        toUpdate.forEach(key => {
+          const i = newObj[key].selected;
+          newObj[key].Frame = imagesRef.current[i];
+        });
+
+        return newObj;
+      });
+    }
+  }, [images, imagesRef, customValues, setCustomValues]);
 
   const value = customValues[block.uuid]
     ? customValues[block.uuid].selected
@@ -182,11 +204,11 @@ export const FrameInputHelper = React.memo(function FrameInputHelper<
 
   function handleChange(event: React.ChangeEvent<{ value: number }>) {
     const i = event.target.value;
-    const image = images[i];
+    const image = imagesRef.current[i];
 
     setCustomValues(old => ({
       ...old,
-      [block.uuid]: { selected: i, Frame: image && image.imageData },
+      [block.uuid]: { selected: i, Frame: image },
     }));
   }
 
