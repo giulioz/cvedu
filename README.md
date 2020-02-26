@@ -10,9 +10,10 @@ If you select a block, you can **see its output** and **edit the code**, using t
 You can easily build a line detector, and play the **included game**  with a colored joystick.
 
 A video demonstration is below:
+
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/IJvX6l1S-DM/0.jpg)](https://www.youtube.com/watch?v=IJvX6l1S-DM)
 
-***NOTE:** This was built as a side project, to be used specifically for a course taught at my university, it may be unstable or incomplete. I take no responsability for its usage.*
+***NOTE:** This was built as a side project, to be used specifically for a course taught at my university, it may be unstable or incomplete, and it's still in heavy development. I take no responsability for its usage.*
 
 ## Available Scripts
 
