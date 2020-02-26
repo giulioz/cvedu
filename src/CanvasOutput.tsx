@@ -116,6 +116,14 @@ export default React.memo(function CanvasOutput({
             }
 
             imageData = tmp;
+          } else {
+            if (
+              video.videoWidth !== canvas.width ||
+              video.videoHeight !== canvas.height
+            ) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+            }
           }
         } catch (e) {
           onError(e.stack);
@@ -143,6 +151,14 @@ export default React.memo(function CanvasOutput({
             }
 
             imageData = tmp;
+          } else {
+            if (
+              video.videoWidth !== canvas.width ||
+              video.videoHeight !== canvas.height
+            ) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+            }
           }
         } catch (e) {
           onError(e.stack);
