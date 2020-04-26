@@ -25,7 +25,7 @@
     "react-three-fiber": "4.0.17",
     "react-use-gesture": "^6.0.14",
     "three": "0.113.2",
-    "typescript": "^3.7.2"
+    "typescript": "^3.8.3"
   },
   "scripts": {
     "start": "react-scripts start",
