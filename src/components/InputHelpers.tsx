@@ -1,10 +1,10 @@
-import React, { useState, useRef, useLayoutEffect } from "react";
-import { makeStyles } from "@material-ui/core/styles";
-import { Grid, Slider, Input, Select, MenuItem } from "@material-ui/core";
-import { useDrag } from "react-use-gesture";
+import React, { useState, useRef, useLayoutEffect } from 'react';
+import { makeStyles } from '@material-ui/core/styles';
+import { Grid, Slider, Input, Select, MenuItem } from '@material-ui/core';
+import { useDrag } from 'react-use-gesture';
 
-import { Block } from "./BlockEditor";
-import { useDefaultInputImages } from "./inputImages";
+import { Block } from './BlockEditor';
+import { useDefaultInputImages } from '../utils/inputImages';
 
 const useStyles = makeStyles(theme => ({
   numberHelper: {
@@ -18,30 +18,27 @@ const useStyles = makeStyles(theme => ({
     margin: theme.spacing(1),
     width: theme.spacing(15),
     height: theme.spacing(15),
-    backgroundImage: "url(/yuv.png)",
-    backgroundSize: "cover",
-    position: "relative",
+    backgroundImage: 'url(/yuv.png)',
+    backgroundSize: 'cover',
+    position: 'relative',
   },
   pickerPoint: {
     width: 4,
     height: 4,
-    borderRadius: "100%",
-    border: "1px solid black",
-    position: "absolute",
+    borderRadius: '100%',
+    border: '1px solid black',
+    position: 'absolute',
   },
   frameRoot: {
     margin: theme.spacing(1),
     width: theme.spacing(20),
   },
   frameSelect: {
-    width: "100%",
+    width: '100%',
   },
 }));
 
-export const NumberInputHelper = React.memo(function NumberInputHelper<
-  BlockInfo,
-  IOPortInfo
->({
+export const NumberInputHelper = React.memo(function NumberInputHelper<BlockInfo, IOPortInfo>({
   customValues,
   setCustomValues,
   block,
@@ -50,9 +47,7 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
   step,
 }: {
   customValues: { [key: string]: any };
-  setCustomValues: (
-    fn: (old: { [key: string]: any }) => { [key: string]: any }
-  ) => void;
+  setCustomValues: (fn: (old: { [key: string]: any }) => { [key: string]: any }) => void;
   block: Block<BlockInfo, IOPortInfo>;
   minValue: number;
   maxValue: number;
@@ -81,31 +76,20 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
   }
 
   return (
-    <Grid
-      container
-      spacing={2}
-      alignItems="center"
-      className={classes.numberHelper}
-    >
+    <Grid container spacing={2} alignItems='center' className={classes.numberHelper}>
       <Grid item xs>
-        <Slider
-          value={value || 0}
-          onChange={handleSliderChange}
-          min={minValue}
-          max={maxValue}
-          step={step}
-        />
+        <Slider value={value || 0} onChange={handleSliderChange} min={minValue} max={maxValue} step={step} />
       </Grid>
       <Grid item>
         <Input
           value={tempValue}
-          margin="dense"
+          margin='dense'
           onChange={e => handleChange(e.target.value)}
           className={classes.numberField}
           inputProps={{
             min: minValue,
             max: maxValue,
-            type: "number",
+            type: 'number',
           }}
         />
       </Grid>
@@ -113,27 +97,20 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<
   );
 });
 
-export const UVInputHelper = React.memo(function UVInputHelper<
-  BlockInfo,
-  IOPortInfo
->({
+export const UVInputHelper = React.memo(function UVInputHelper<BlockInfo, IOPortInfo>({
   customValues,
   setCustomValues,
   block,
 }: {
   customValues: { [key: string]: any };
-  setCustomValues: (
-    fn: (old: { [key: string]: any }) => { [key: string]: any }
-  ) => void;
+  setCustomValues: (fn: (old: { [key: string]: any }) => { [key: string]: any }) => void;
   block: Block<BlockInfo, IOPortInfo>;
 }) {
   const classes = useStyles({});
 
   const rectRef = useRef<HTMLDivElement>();
 
-  const [tempValue, setTempValue] = useState(
-    customValues[block.uuid] || { U: 0, V: 0 }
-  );
+  const [tempValue, setTempValue] = useState(customValues[block.uuid] || { U: 0, V: 0 });
 
   const bind = useDrag(({ xy: [x, y], event }) => {
     const bounds = rectRef.current.getBoundingClientRect();
@@ -150,40 +127,27 @@ export const UVInputHelper = React.memo(function UVInputHelper<
 
   return (
     <div {...bind()} ref={rectRef} className={classes.yuvRoot}>
-      <div
-        className={classes.pickerPoint}
-        style={{ left: tempValue.x, top: tempValue.y }}
-      ></div>
+      <div className={classes.pickerPoint} style={{ left: tempValue.x, top: tempValue.y }}></div>
     </div>
   );
 });
 
-export const FrameInputHelper = React.memo(function FrameInputHelper<
-  BlockInfo,
-  IOPortInfo
->({
+export const FrameInputHelper = React.memo(function FrameInputHelper<BlockInfo, IOPortInfo>({
   customValues,
   setCustomValues,
   block,
 }: {
   customValues: { [key: string]: any };
-  setCustomValues: (
-    fn: (old: { [key: string]: any }) => { [key: string]: any }
-  ) => void;
+  setCustomValues: (fn: (old: { [key: string]: any }) => { [key: string]: any }) => void;
   block: Block<BlockInfo, IOPortInfo>;
 }) {
   const classes = useStyles({});
 
   const [images, imagesRef] = useDefaultInputImages();
   useLayoutEffect(() => {
-    const toUpdate = Object.keys(customValues).filter(
-      key =>
-        customValues[key].selected !== undefined && !customValues[key].Frame
-    );
+    const toUpdate = Object.keys(customValues).filter(key => customValues[key].selected !== undefined && !customValues[key].Frame);
 
-    const canUpdate = toUpdate.filter(
-      key => imagesRef.current[customValues[key].selected]
-    );
+    const canUpdate = toUpdate.filter(key => imagesRef.current[customValues[key].selected]);
 
     if (toUpdate.length > 0 && canUpdate.length > 0) {
       setCustomValues(old => {
@@ -198,9 +162,7 @@ export const FrameInputHelper = React.memo(function FrameInputHelper<
     }
   }, [images, imagesRef, customValues, setCustomValues]);
 
-  const value = customValues[block.uuid]
-    ? customValues[block.uuid].selected
-    : -1;
+  const value = customValues[block.uuid] ? customValues[block.uuid].selected : -1;
 
   function handleChange(event: React.ChangeEvent<{ value: number }>) {
     const i = event.target.value;
@@ -214,11 +176,7 @@ export const FrameInputHelper = React.memo(function FrameInputHelper<
 
   return (
     <div className={classes.frameRoot}>
-      <Select
-        value={value}
-        onChange={handleChange}
-        className={classes.frameSelect}
-      >
+      <Select value={value} onChange={handleChange} className={classes.frameSelect}>
         <MenuItem key={-1} value={-1}>
           None
         </MenuItem>

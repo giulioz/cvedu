@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 
-const config = [{ url: "/testImage.jpg", label: "Beach" }];
+const config = [{ url: '/testImage.jpg', label: 'Beach' }];
 
 async function fetchImage(url: string) {
   return new Promise<HTMLImageElement>(resolve => {
@@ -10,11 +10,7 @@ async function fetchImage(url: string) {
   });
 }
 
-function getImageData(
-  canvas: HTMLCanvasElement,
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement
-) {
+function getImageData(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, image: HTMLImageElement) {
   canvas.width = image.width;
   canvas.height = image.height;
 
@@ -23,26 +19,19 @@ function getImageData(
   return imageData;
 }
 
-export function useDefaultInputImages(): [
-  (typeof config[0] & { loaded: boolean })[],
-  React.RefObject<ImageData[]>
-] {
+export function useDefaultInputImages(): [(typeof config[0] & { loaded: boolean })[], React.RefObject<ImageData[]>] {
   const [data, setData] = useState(config.map(c => ({ ...c, loaded: false })));
 
   const imgsRef = useRef<ImageData[]>([]);
 
   useEffect(() => {
     async function loadImages() {
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
 
-      const imagesLoaded = await Promise.all(
-        config.map(c => fetchImage(c.url))
-      );
+      const imagesLoaded = await Promise.all(config.map(c => fetchImage(c.url)));
 
-      imagesLoaded.forEach(
-        (img, i) => (imgsRef.current[i] = getImageData(canvas, context, img))
-      );
+      imagesLoaded.forEach((img, i) => (imgsRef.current[i] = getImageData(canvas, context, img)));
 
       const newData = config.map((d, i) => ({
         ...d,

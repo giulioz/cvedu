@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 
 export function useAnimLoop(callbackBuild: () => (time: number) => void) {
   const animRef = useRef(null);
@@ -23,12 +23,12 @@ export function useWebcam() {
   useEffect(() => {
     async function init() {
       if (!video) {
-        const el = document.createElement("video");
-        el.setAttribute("playsinline", "true");
-        el.setAttribute("autoplay", "true");
+        const el = document.createElement('video');
+        el.setAttribute('playsinline', 'true');
+        el.setAttribute('autoplay', 'true');
 
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: { facingMode: 'environment' },
           audio: false,
         });
         el.srcObject = mediaStream;
@@ -43,11 +43,7 @@ export function useWebcam() {
   return video;
 }
 
-export function maskToImageData(mask: {
-  data: boolean[];
-  width: number;
-  height: number;
-}) {
+export function maskToImageData(mask: { data: boolean[]; width: number; height: number }) {
   const newData = new ImageData(mask.width, mask.height);
 
   mask.data.forEach((d, i) => {
@@ -60,13 +56,7 @@ export function maskToImageData(mask: {
   return newData;
 }
 
-export function accumulatorToImageData(acc: {
-  data: number[];
-  width: number;
-  height: number;
-  alpha_steps: number;
-  r_steps: number;
-}) {
+export function accumulatorToImageData(acc: { data: number[]; width: number; height: number; alpha_steps: number; r_steps: number }) {
   const newData = new ImageData(acc.width, acc.height);
   const max = Math.max(...acc.data);
 

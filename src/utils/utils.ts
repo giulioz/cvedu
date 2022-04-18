@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export function uuidv4() {
-  return "xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+  return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0,
-      v = c === "x" ? r : (r & 0x3) | 0x8;
+      v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -48,10 +48,7 @@ function removeBigData(obj: any) {
     nObj[uuid] = { ...obj[uuid] };
 
     Object.keys(obj[uuid]).forEach(paramName => {
-      if (
-        nObj[uuid][paramName] instanceof ImageData ||
-        nObj[uuid][paramName] instanceof HTMLImageElement
-      ) {
+      if (nObj[uuid][paramName] instanceof ImageData || nObj[uuid][paramName] instanceof HTMLImageElement) {
         nObj[uuid][paramName] = null;
       }
     });
@@ -60,12 +57,7 @@ function removeBigData(obj: any) {
   return nObj;
 }
 
-export function usePersistState<T>(
-  value: T,
-  setter: (value: T) => void,
-  key: string,
-  timeout = 1000
-) {
+export function usePersistState<T>(value: T, setter: (value: T) => void, key: string, timeout = 1000) {
   useEffect(() => {
     const persistedString = window.localStorage.getItem(key);
     if (persistedString) {
@@ -73,7 +65,7 @@ export function usePersistState<T>(
         const persistedJSON = JSON.parse(persistedString);
         setter(persistedJSON);
       } catch (e) {
-        console.error("Error deserializing", key, e);
+        console.error('Error deserializing', key, e);
       }
     }
   }, [key, setter]);
@@ -84,7 +76,7 @@ export function usePersistState<T>(
       const persistedString = JSON.stringify(obj);
       window.localStorage.setItem(key, persistedString);
     } catch (e) {
-      console.error("Error serializing", key, e);
+      console.error('Error serializing', key, e);
     }
   }, [key, value]);
 

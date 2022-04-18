@@ -1,39 +1,38 @@
-import React, { useRef, useCallback, useState } from "react";
-import { useAutoMemo, useAutoCallback } from "hooks.macro";
-import { makeStyles } from "@material-ui/styles";
-import { Theme, IconButton } from "@material-ui/core";
-import PlayIcon from "@material-ui/icons/PlayArrow";
-import PauseIcon from "@material-ui/icons/Pause";
+import React, { useRef, useCallback, useState, useMemo } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { Theme, IconButton } from '@material-ui/core';
+import PlayIcon from '@material-ui/icons/PlayArrow';
+import PauseIcon from '@material-ui/icons/Pause';
 
-import { useWebcam, useAnimLoop } from "./videoUtils";
+import { useWebcam, useAnimLoop } from '../utils/videoUtils';
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
-    position: "relative",
-    width: "100%",
-    height: "100%",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   canvas: {
-    maxWidth: "100%",
-    maxHeight: "100%",
+    maxWidth: '100%',
+    maxHeight: '100%',
   },
   tooltip: {
-    position: "absolute",
+    position: 'absolute',
     top: theme.spacing(1),
     left: theme.spacing(1),
     zIndex: 1000,
   },
   title: {
-    position: "absolute",
+    position: 'absolute',
     bottom: theme.spacing(1),
     left: theme.spacing(1),
     zIndex: 1000,
   },
   controls: {
-    position: "absolute",
+    position: 'absolute',
     bottom: theme.spacing(1),
     right: theme.spacing(1),
     zIndex: 1000,
@@ -58,41 +57,32 @@ export default React.memo(function CanvasOutput({
 
   const [underPixelColor, setUnderPixelColor] = useState<string>();
 
-  const handleMouseMove = useAutoCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = e.target as HTMLCanvasElement;
-      const bounds = canvas.getBoundingClientRect();
-      const ctx = canvas.getContext("2d");
-      const data = ctx.getImageData(
-        e.clientX - bounds.left,
-        e.clientY - bounds.top,
-        1,
-        1
-      ).data;
-      const color = data.join(", ");
-      setUnderPixelColor(color);
-    }
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = e.target as HTMLCanvasElement;
+    const bounds = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    const data = ctx.getImageData(e.clientX - bounds.left, e.clientY - bounds.top, 1, 1).data;
+    const color = data.join(', ');
+    setUnderPixelColor(color);
+  }, []);
+
+  const handleTogglePlay = useCallback(
+    function handleTogglePlay() {
+      setPausedFrame(frame => {
+        if (frame) {
+          return null;
+        } else {
+          const canvas = canvasRef.current;
+          const context = canvas.getContext('2d');
+          context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+          return imageData;
+        }
+      });
+    },
+    [canvasRef, video],
   );
-
-  const handleTogglePlay = useAutoCallback(function handleTogglePlay() {
-    setPausedFrame(frame => {
-      if (frame) {
-        return null;
-      } else {
-        const canvas = canvasRef.current;
-        const context = canvas.getContext("2d");
-        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-        const imageData = context.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-
-        return imageData;
-      }
-    });
-  });
 
   const videoReady = useRef(false);
 
@@ -100,7 +90,7 @@ export default React.memo(function CanvasOutput({
     const canvas = canvasRef.current;
 
     if (!video || !canvas || !handler) return () => {};
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext('2d');
 
     return () => {
       if (pausedFrame) {
@@ -117,10 +107,7 @@ export default React.memo(function CanvasOutput({
 
             imageData = tmp;
           } else {
-            if (
-              video.videoWidth !== canvas.width ||
-              video.videoHeight !== canvas.height
-            ) {
+            if (video.videoWidth !== canvas.width || video.videoHeight !== canvas.height) {
               canvas.width = video.videoWidth;
               canvas.height = video.videoHeight;
             }
@@ -152,10 +139,7 @@ export default React.memo(function CanvasOutput({
 
             imageData = tmp;
           } else {
-            if (
-              video.videoWidth !== canvas.width ||
-              video.videoHeight !== canvas.height
-            ) {
+            if (video.videoWidth !== canvas.width || video.videoHeight !== canvas.height) {
               canvas.width = video.videoWidth;
               canvas.height = video.videoHeight;
             }
@@ -174,22 +158,17 @@ export default React.memo(function CanvasOutput({
 
   return (
     <div className={classes.root} {...rest}>
-      {underPixelColor && (
-        <div className={classes.tooltip}>{underPixelColor}</div>
-      )}
+      {underPixelColor && <div className={classes.tooltip}>{underPixelColor}</div>}
       <div className={classes.title}>{title}</div>
-      <canvas
-        className={classes.canvas}
-        onMouseMove={handleMouseMove}
-        ref={canvasRef}
-      />
-      {useAutoMemo(() => (
-        <div className={classes.controls}>
-          <IconButton onClick={handleTogglePlay}>
-            {pausedFrame ? <PlayIcon /> : <PauseIcon />}
-          </IconButton>
-        </div>
-      ))}
+      <canvas className={classes.canvas} onMouseMove={handleMouseMove} ref={canvasRef} />
+      {useMemo(
+        () => (
+          <div className={classes.controls}>
+            <IconButton onClick={handleTogglePlay}>{pausedFrame ? <PlayIcon /> : <PauseIcon />}</IconButton>
+          </div>
+        ),
+        [classes, handleTogglePlay, pausedFrame],
+      )}
     </div>
   );
 });

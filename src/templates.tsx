@@ -1,41 +1,37 @@
-import React from "react";
+import React from 'react';
 
-import { BlockInfo, IOPortInfo } from "./App";
-import { formatCode, getFunctionFromCode } from "./codeUtils";
-import {
-  NumberInputHelper,
-  UVInputHelper,
-  FrameInputHelper,
-} from "./InputHelpers";
-import { Block, BlockTemplate } from "./BlockEditor";
+import { BlockInfo, IOPortInfo } from './App';
+import { formatCode, getFunctionFromCode } from './utils/codeUtils';
+import { NumberInputHelper, UVInputHelper, FrameInputHelper } from './components/InputHelpers';
+import { Block, BlockTemplate } from './components/BlockEditor';
 
 export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
   {
-    type: "CameraInput",
+    type: 'CameraInput',
     hardcoded: true,
     customInput: false,
-    code: "",
-    solution: "",
-    solutionPassword: "test",
-    color: "#422828",
+    code: '',
+    solution: '',
+    solutionPassword: 'test',
+    color: '#422828',
     inputs: [],
     outputs: [
       {
-        label: "Frame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
+        label: 'Frame',
+        type: 'output' as const,
+        valueType: 'imagedata' as const,
       },
     ],
   },
 
   {
-    type: "NumericInput",
+    type: 'NumericInput',
     hardcoded: true,
     customInput: true,
-    code: "",
-    solution: "",
-    solutionPassword: "test",
-    color: "#423f28",
+    code: '',
+    solution: '',
+    solutionPassword: 'test',
+    color: '#423f28',
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
       {
@@ -43,38 +39,27 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         setCustomValues,
       }: {
         customValues: { [key: string]: any };
-        setCustomValues: (
-          fn: (old: { [key: string]: any }) => { [key: string]: any }
-        ) => void;
-      }
-    ) => (
-      <NumberInputHelper
-        customValues={customValues}
-        setCustomValues={setCustomValues}
-        block={block}
-        minValue={0}
-        maxValue={30}
-        step={0.01}
-      />
-    ),
+        setCustomValues: (fn: (old: { [key: string]: any }) => { [key: string]: any }) => void;
+      },
+    ) => <NumberInputHelper customValues={customValues} setCustomValues={setCustomValues} block={block} minValue={0} maxValue={30} step={0.01} />,
     inputs: [],
     outputs: [
       {
-        label: "Number",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'Number',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
     ],
   },
 
   {
-    type: "UVInput",
+    type: 'UVInput',
     hardcoded: true,
     customInput: true,
-    code: "",
-    solution: "",
-    solutionPassword: "test",
-    color: "#423f28",
+    code: '',
+    solution: '',
+    solutionPassword: 'test',
+    color: '#423f28',
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
       {
@@ -82,40 +67,32 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         setCustomValues,
       }: {
         customValues: { [key: string]: any };
-        setCustomValues: (
-          fn: (old: { [key: string]: any }) => { [key: string]: any }
-        ) => void;
-      }
-    ) => (
-      <UVInputHelper
-        customValues={customValues}
-        setCustomValues={setCustomValues}
-        block={block}
-      />
-    ),
+        setCustomValues: (fn: (old: { [key: string]: any }) => { [key: string]: any }) => void;
+      },
+    ) => <UVInputHelper customValues={customValues} setCustomValues={setCustomValues} block={block} />,
     inputs: [],
     outputs: [
       {
-        label: "U",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'U',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "V",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'V',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
     ],
   },
 
   {
-    type: "FrameInput",
+    type: 'FrameInput',
     hardcoded: true,
     customInput: true,
-    code: "",
-    solution: "",
-    solutionPassword: "test",
-    color: "#423f28",
+    code: '',
+    solution: '',
+    solutionPassword: 'test',
+    color: '#423f28',
     customRenderer: (
       block: Block<BlockInfo, IOPortInfo>,
       {
@@ -123,65 +100,57 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         setCustomValues,
       }: {
         customValues: { [key: string]: any };
-        setCustomValues: (
-          fn: (old: { [key: string]: any }) => { [key: string]: any }
-        ) => void;
-      }
-    ) => (
-      <FrameInputHelper
-        customValues={customValues}
-        setCustomValues={setCustomValues}
-        block={block}
-      />
-    ),
+        setCustomValues: (fn: (old: { [key: string]: any }) => { [key: string]: any }) => void;
+      },
+    ) => <FrameInputHelper customValues={customValues} setCustomValues={setCustomValues} block={block} />,
     inputs: [],
     outputs: [
       {
-        label: "Frame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
+        label: 'Frame',
+        type: 'output' as const,
+        valueType: 'imagedata' as const,
       },
     ],
   },
 
   {
-    type: "DisplayFrame",
+    type: 'DisplayFrame',
     hardcoded: true,
     customInput: false,
-    code: "",
-    solution: "",
-    solutionPassword: "test",
-    color: "#284042",
+    code: '',
+    solution: '',
+    solutionPassword: 'test',
+    color: '#284042',
     inputs: [
       {
-        label: "Frame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
+        label: 'Frame',
+        type: 'input' as const,
+        valueType: 'imagedata' as const,
       },
     ],
     outputs: [],
   },
 
   {
-    type: "Game",
+    type: 'Game',
     hardcoded: true,
     customInput: false,
-    code: "",
-    solution: "",
-    solutionPassword: "test",
-    color: "#284042",
+    code: '',
+    solution: '',
+    solutionPassword: 'test',
+    color: '#284042',
     inputs: [
       {
-        label: "Angle",
-        type: "input" as const,
-        valueType: "number" as const,
+        label: 'Angle',
+        type: 'input' as const,
+        valueType: 'number' as const,
       },
     ],
     outputs: [],
   },
 
   {
-    type: "ChromaComposite",
+    type: 'ChromaComposite',
     hardcoded: false,
     customInput: false,
     code: `function ChromaComposite({
@@ -228,35 +197,35 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Frame: newData };
     }`,
-    solutionPassword: "test",
+    solutionPassword: 'test',
     inputs: [
       {
-        label: "Mask",
-        type: "input" as const,
-        valueType: "mask" as const,
+        label: 'Mask',
+        type: 'input' as const,
+        valueType: 'mask' as const,
       },
       {
-        label: "FrameA",
-        type: "input" as const,
-        valueType: "imagedata" as const,
+        label: 'FrameA',
+        type: 'input' as const,
+        valueType: 'imagedata' as const,
       },
       {
-        label: "FrameB",
-        type: "input" as const,
-        valueType: "imagedata" as const,
+        label: 'FrameB',
+        type: 'input' as const,
+        valueType: 'imagedata' as const,
       },
     ],
     outputs: [
       {
-        label: "Frame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
+        label: 'Frame',
+        type: 'output' as const,
+        valueType: 'imagedata' as const,
       },
     ],
   },
 
   {
-    type: "RGBtoYUV",
+    type: 'RGBtoYUV',
     hardcoded: false,
     customInput: false,
     code: `function RGBtoYUV({ Frame }: { Frame: ImageData }):{ YUVFrame: ImageData } {
@@ -309,25 +278,25 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { YUVFrame: newData };
     }`,
-    solutionPassword: "test",
+    solutionPassword: 'test',
     inputs: [
       {
-        label: "Frame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
+        label: 'Frame',
+        type: 'input' as const,
+        valueType: 'imagedata' as const,
       },
     ],
     outputs: [
       {
-        label: "YUVFrame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
+        label: 'YUVFrame',
+        type: 'output' as const,
+        valueType: 'imagedata' as const,
       },
     ],
   },
 
   {
-    type: "ChromaKeyUV",
+    type: 'ChromaKeyUV',
     hardcoded: false,
     customInput: false,
     code: `function ChromaKeyUV({ YUVFrame, pU,pV,radius }: { YUVFrame: ImageData;pU:number;pV:number;radius:number }): { Mask: {data:boolean[];width:number;height:number} } {
@@ -363,40 +332,40 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Mask:{data,width:YUVFrame.width,height:YUVFrame.height} };
     }`,
-    solutionPassword: "test",
+    solutionPassword: 'test',
     inputs: [
       {
-        label: "YUVFrame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
+        label: 'YUVFrame',
+        type: 'input' as const,
+        valueType: 'imagedata' as const,
       },
       {
-        label: "pU",
-        type: "input" as const,
-        valueType: "number" as const,
+        label: 'pU',
+        type: 'input' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "pV",
-        type: "input" as const,
-        valueType: "number" as const,
+        label: 'pV',
+        type: 'input' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "radius",
-        type: "input" as const,
-        valueType: "number" as const,
+        label: 'radius',
+        type: 'input' as const,
+        valueType: 'number' as const,
       },
     ],
     outputs: [
       {
-        label: "Mask",
-        type: "output" as const,
-        valueType: "mask" as const,
+        label: 'Mask',
+        type: 'output' as const,
+        valueType: 'mask' as const,
       },
     ],
   },
 
   {
-    type: "Hough",
+    type: 'Hough',
     hardcoded: false,
     customInput: false,
     code: `const a_step = 0.1;
@@ -502,30 +471,30 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
         },
       };
     }`,
-    solutionPassword: "test",
+    solutionPassword: 'test',
     inputs: [
       {
-        label: "YUVFrame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
+        label: 'YUVFrame',
+        type: 'input' as const,
+        valueType: 'imagedata' as const,
       },
       {
-        label: "Mask",
-        type: "input" as const,
-        valueType: "mask" as const,
+        label: 'Mask',
+        type: 'input' as const,
+        valueType: 'mask' as const,
       },
     ],
     outputs: [
       {
-        label: "Accumulator",
-        type: "output" as const,
-        valueType: "accumulator" as const,
+        label: 'Accumulator',
+        type: 'output' as const,
+        valueType: 'accumulator' as const,
       },
     ],
   },
 
   {
-    type: "HoughMax",
+    type: 'HoughMax',
     hardcoded: false,
     customInput: false,
     code: `const a_step = 0.01;
@@ -586,35 +555,35 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
     }`,
-    solutionPassword: "test",
+    solutionPassword: 'test',
     inputs: [
       {
-        label: "Accumulator",
-        type: "input" as const,
-        valueType: "accumulator" as const,
+        label: 'Accumulator',
+        type: 'input' as const,
+        valueType: 'accumulator' as const,
       },
     ],
     outputs: [
       {
-        label: "A",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'A',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "R",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'R',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "A_Deg",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'A_Deg',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
     ],
   },
 
   {
-    type: "Ransac",
+    type: 'Ransac',
     hardcoded: false,
     customInput: false,
     code: `function Ransac({
@@ -631,35 +600,35 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     }):  { A: number; R: number; A_Deg: number }  {
       return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
     }`,
-    solutionPassword: "test",
+    solutionPassword: 'test',
     inputs: [
       {
-        label: "Mask",
-        type: "input" as const,
-        valueType: "mask" as const,
+        label: 'Mask',
+        type: 'input' as const,
+        valueType: 'mask' as const,
       },
     ],
     outputs: [
       {
-        label: "A",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'A',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "R",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'R',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "A_Deg",
-        type: "output" as const,
-        valueType: "number" as const,
+        label: 'A_Deg',
+        type: 'output' as const,
+        valueType: 'number' as const,
       },
     ],
   },
 
   {
-    type: "DrawLine",
+    type: 'DrawLine',
     hardcoded: false,
     customInput: false,
     code: `function DrawLine({
@@ -738,29 +707,29 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { Frame: newData };
     }`,
-    solutionPassword: "test",
+    solutionPassword: 'test',
     inputs: [
       {
-        label: "Frame",
-        type: "input" as const,
-        valueType: "imagedata" as const,
+        label: 'Frame',
+        type: 'input' as const,
+        valueType: 'imagedata' as const,
       },
       {
-        label: "A",
-        type: "input" as const,
-        valueType: "number" as const,
+        label: 'A',
+        type: 'input' as const,
+        valueType: 'number' as const,
       },
       {
-        label: "R",
-        type: "input" as const,
-        valueType: "number" as const,
+        label: 'R',
+        type: 'input' as const,
+        valueType: 'number' as const,
       },
     ],
     outputs: [
       {
-        label: "Frame",
-        type: "output" as const,
-        valueType: "imagedata" as const,
+        label: 'Frame',
+        type: 'output' as const,
+        valueType: 'imagedata' as const,
       },
     ],
   },
@@ -768,6 +737,6 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
   ...template,
   code: formatCode(template.code),
   solution: formatCode(template.solution),
-  solutionPassword: "test",
+  solutionPassword: 'test',
   fn: getFunctionFromCode(template.code),
 }));
