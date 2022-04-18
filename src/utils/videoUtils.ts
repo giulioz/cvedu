@@ -56,8 +56,9 @@ export function maskToImageData(mask: { data: boolean[]; width: number; height: 
   return newData;
 }
 
+let newData: ImageData | null = null;
 export function accumulatorToImageData(acc: { data: number[]; width: number; height: number; alpha_steps: number; r_steps: number }) {
-  const newData = new ImageData(acc.width, acc.height);
+  if (!newData || newData.width !== acc.width) newData = new ImageData(acc.width, acc.height);
   const max = Math.max(...acc.data);
 
   for (let i = 0; i < newData.data.length; i += 4) {

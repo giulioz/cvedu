@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useMemo } from 'react';
+import React, { useRef, useCallback, useState, useMemo, useEffect } from 'react';
 import { makeStyles } from '@material-ui/styles';
 import { Theme, IconButton } from '@material-ui/core';
 import PlayIcon from '@material-ui/icons/PlayArrow';
@@ -43,11 +43,13 @@ export default React.memo(function CanvasOutput({
   handler,
   onError,
   title,
+  paused,
   ...rest
 }: {
   handler(data: ImageData): ImageData | null;
   onError: (error: any) => void;
   title: string;
+  paused?: boolean;
 } & any) {
   const classes = useStyles({});
 
@@ -84,6 +86,14 @@ export default React.memo(function CanvasOutput({
     [canvasRef, video],
   );
 
+  useEffect(() => {
+    if (paused) {
+      handleTogglePlay();
+    } else {
+      setPausedFrame(null);
+    }
+  }, [paused, handleTogglePlay]);
+
   const videoReady = useRef(false);
 
   const animLoop = useCallback(() => {
@@ -96,26 +106,26 @@ export default React.memo(function CanvasOutput({
       if (pausedFrame) {
         let imageData = pausedFrame;
 
-        try {
-          const tmp = handler(imageData);
+        // try {
+        //   const tmp = handler(imageData);
 
-          if (tmp) {
-            if (tmp.width !== canvas.width || tmp.height !== canvas.height) {
-              canvas.width = tmp.width;
-              canvas.height = tmp.height;
-            }
+        //   if (tmp) {
+        //     if (tmp.width !== canvas.width || tmp.height !== canvas.height) {
+        //       canvas.width = tmp.width;
+        //       canvas.height = tmp.height;
+        //     }
 
-            imageData = tmp;
-          } else {
-            if (video.videoWidth !== canvas.width || video.videoHeight !== canvas.height) {
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-            }
-          }
-        } catch (e) {
-          onError(e.stack);
-          console.error(e);
-        }
+        //     imageData = tmp;
+        //   } else {
+        //     if (video.videoWidth !== canvas.width || video.videoHeight !== canvas.height) {
+        //       canvas.width = video.videoWidth;
+        //       canvas.height = video.videoHeight;
+        //     }
+        //   }
+        // } catch (e) {
+        //   onError(e.stack);
+        //   console.error(e);
+        // }
 
         context.putImageData(imageData, 0, 0);
       } else if (video.readyState === video.HAVE_ENOUGH_DATA) {

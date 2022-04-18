@@ -265,6 +265,8 @@ export default function App() {
     return { frameOutputName, blockToDisplay };
   }, [blocks, selectedBlockID]);
 
+  const [paused, setPaused] = useState(false);
+
   const handleFrame = useCallback(
     function handleFrame(imgData: ImageData): ImageData | null {
       if (currentError) return null;
@@ -355,7 +357,7 @@ export default function App() {
 
       return null;
     },
-    [blocks, validLinks, frameOutputName, blockToDisplay],
+    [blocks, validLinks, frameOutputName, blockToDisplay, customValues],
   );
 
   // To allow deferred IO Decoration update
@@ -431,6 +433,7 @@ export default function App() {
                 handler={handleFrame}
                 onError={handleError}
                 title={blockToDisplay && frameOutputName ? `Output for ${blockToDisplay.type}` : 'Output'}
+                paused={paused}
               />
             </div>
             <div className={classes.containerHorizHalf}>
@@ -451,6 +454,7 @@ export default function App() {
               onSelectBlock={setSelectedBlockID}
               renderIODecoration={renderIODecoration}
               customParams={customRendererParams}
+              onDragAction={useCallback(dragging => (dragging ? setPaused(true) : setPaused(false)), [])}
             />
           </div>
         </div>

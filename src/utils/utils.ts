@@ -82,3 +82,8 @@ export function usePersistState<T>(value: T, setter: (value: T) => void, key: st
 
   useThrottle(handler, timeout);
 }
+
+export function disableEvent(e: { preventDefault(): void; stopPropagation(): void }) {
+  e.preventDefault();
+  e.stopPropagation();
+}

@@ -380,7 +380,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       Mask: { data: boolean[]; width: number; height: number };
     }): {
       Accumulator: {
-        data: number[];
+        data: Float32Array;
         width: number;
         height: number;
         alpha_steps: number;
@@ -390,7 +390,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       // Accumulatore
       const alpha_steps = Math.round(Math.PI / a_step) + 1;
       const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
-      const accData = new Array(alpha_steps * r_steps).fill(0);
+      const accData = new Float32Array(alpha_steps * r_steps);
     
       for (let i = 0; i < YUVFrame.data.length; i += 4) {
         const maskValue = Mask.data[i / 4];
@@ -423,7 +423,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       Mask: { data: boolean[]; width: number; height: number };
     }): {
       Accumulator: {
-        data: number[];
+        data: Float32Array;
         width: number;
         height: number;
         alpha_steps: number;
@@ -433,7 +433,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       // Accumulatore
       const alpha_steps = Math.round(Math.PI / a_step) + 1;
       const r_steps = Math.round((max_r * 2.0) / r_step) + 1;
-      const accData = new Array(alpha_steps * r_steps).fill(0);
+      const accData = new Float32Array(alpha_steps * r_steps);
     
       for (let i = 0; i < YUVFrame.data.length; i += 4) {
         const maskValue = Mask.data[i / 4];
@@ -497,7 +497,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     type: 'HoughMax',
     hardcoded: false,
     customInput: false,
-    code: `const a_step = 0.01;
+    code: `const a_step = 0.1;
     const r_step = 4.0;
     const max_r = 400.0;
 
@@ -505,7 +505,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       Accumulator,
     }: {
       Accumulator: {
-        data: number[];
+        data: Float32Array;
         width: number;
         height: number;
         alpha_steps: number;
@@ -521,7 +521,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
     
       return { A: current_a, R: current_r, A_Deg: current_a * (180.0 / Math.PI) };
     }`,
-    solution: `const a_step = 0.01;
+    solution: `const a_step = 0.1;
     const r_step = 4.0;
     const max_r = 400.0;
     
@@ -529,7 +529,7 @@ export const templatesInitial: BlockTemplate<BlockInfo, IOPortInfo>[] = [
       Accumulator
     }: {
       Accumulator: {
-        data: number[];
+        data: Float32Array;
         width: number;
         height: number;
         alpha_steps: number;
