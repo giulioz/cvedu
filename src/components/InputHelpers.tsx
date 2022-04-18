@@ -1,10 +1,11 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import { Grid, Slider, Input, Select, MenuItem } from '@material-ui/core';
 import { useDrag } from 'react-use-gesture';
 
 import { Block } from './BlockEditor';
 import { useDefaultInputImages } from '../utils/inputImages';
+import { disableEvent } from '../utils/utils';
 
 const useStyles = makeStyles(theme => ({
   numberHelper: {
@@ -68,17 +69,15 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<BlockInfo
     }
   }
 
-  function handleSliderChange(e: React.ChangeEvent<{}>, n: number) {
+  function handleSliderChange(e: unknown, n: number) {
     setCustomValues(old => ({ ...old, [block.uuid]: { Number: n } }));
     setTempValue(String(n));
-
-    e.stopPropagation();
   }
 
   return (
     <Grid container spacing={2} alignItems='center' className={classes.numberHelper}>
       <Grid item xs>
-        <Slider value={value || 0} onChange={handleSliderChange} min={minValue} max={maxValue} step={step} />
+        <Slider value={value || 0} onChange={handleSliderChange} min={minValue} max={maxValue} step={step} onPointerMove={disableEvent} />
       </Grid>
       <Grid item>
         <Input
@@ -91,6 +90,8 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<BlockInfo
             max: maxValue,
             type: 'number',
           }}
+          style={{ minWidth: 40 }}
+          onPointerMove={disableEvent}
         />
       </Grid>
     </Grid>
@@ -127,7 +128,13 @@ export const UVInputHelper = React.memo(function UVInputHelper<BlockInfo, IOPort
 
   return (
     <div {...bind()} ref={rectRef} className={classes.yuvRoot}>
-      <div className={classes.pickerPoint} style={{ left: tempValue.x, top: tempValue.y }}></div>
+      <div
+        className={classes.pickerPoint}
+        style={{
+          left: tempValue.x != null ? tempValue.x : (tempValue.U / 255) * 120,
+          top: tempValue.y != null ? tempValue.y : (tempValue.V / 255) * 120,
+        }}
+      ></div>
     </div>
   );
 });

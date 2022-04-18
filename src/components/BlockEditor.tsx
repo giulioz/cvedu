@@ -255,6 +255,8 @@ const BlockRender = React.memo(function BlockRender<TBlockInfo, TPortInfo>({
   block,
   customParams,
   parentRef,
+  onDragStart,
+  onDragEnd,
 }: {
   x: number;
   y: number;
@@ -269,6 +271,8 @@ const BlockRender = React.memo(function BlockRender<TBlockInfo, TPortInfo>({
   block: Block<TBlockInfo, TPortInfo>;
   customParams: any;
   parentRef: React.RefObject<HTMLDivElement>;
+  onDragStart: () => void;
+  onDragEnd: () => void;
 }) {
   const classes = useStyles({});
 
@@ -279,21 +283,24 @@ const BlockRender = React.memo(function BlockRender<TBlockInfo, TPortInfo>({
 
   const divRef = useRef<HTMLDivElement>();
   const firstTimeRef = useRef<number>();
-  const bind = useDrag(({ delta: [px, py], timeStamp, first, last }) => {
-    if (first) firstTimeRef.current = timeStamp;
+  const bind = useDrag(({ movement: [mx, my], timeStamp, first, last, memo }) => {
+    if (first) {
+      firstTimeRef.current = timeStamp;
+      memo = { x: Number(divRef.current.style.left.replaceAll('px', '')), y: Number(divRef.current.style.top.replaceAll('px', '')) };
+      onDragStart();
+    }
+
+    if (last) {
+      onDragEnd();
+    }
 
     if (timeStamp - firstTimeRef.current < 100) {
       if (last) onSelect(uuid);
     } else {
-      if (divRef.current && (x === undefined || y === undefined)) {
-        const rect = divRef.current.getBoundingClientRect();
-        const x = rect.x + rect.width / 2;
-        const y = rect.y;
-        onMove(uuid, { x: px + x, y: py + y });
-      } else {
-        onMove(uuid, { x: px + x, y: py + y });
-      }
+      onMove(uuid, { x: mx + memo.x, y: my + memo.y });
     }
+
+    return memo;
   });
 
   const ioRefs = useRef<{ [key: string]: HTMLElement }>({});
@@ -440,6 +447,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   onSelectBlock = () => {},
   renderIODecoration = () => null,
   customParams,
+  onDragAction,
 }: {
   templates: BlockTemplate<TBlockInfo, TPortInfo>[];
   blocks: Block<TBlockInfo, TPortInfo>[];
@@ -462,6 +470,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   onSelectBlock(fn: (selected: string) => string): void;
   renderIODecoration?: (port: IOPortInst<TPortInfo>) => JSX.Element;
   customParams: any;
+  onDragAction: (dragging: boolean) => void;
 }) {
   const classes = useStyles({});
 
@@ -504,8 +513,9 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
       ]);
 
       setDraggingTemplate(uuid);
+      onDragAction(true);
     },
-    [templates, getUuid, setBlocks, setBlocksPos],
+    [templates, getUuid, setBlocks, setBlocksPos, onDragAction],
   );
   const handleMoveTemplate = useCallback(
     (pos: PosObject) => {
@@ -523,7 +533,10 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
     },
     [draggingTemplate, setBlocksPos],
   );
-  const handleMoveTemplateEnd = useCallback(() => setDraggingTemplate(null), []);
+  const handleMoveTemplateEnd = useCallback(() => {
+    setDraggingTemplate(null);
+    onDragAction(false);
+  }, [onDragAction]);
 
   const handleMoveBlock = useCallback(
     (uuid: string, pos: PosObject) => {
@@ -627,6 +640,9 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
     );
   }, [links, blocksPos]);
 
+  const handleDragStart = useCallback(() => onDragAction(true), [onDragAction]);
+  const handleDragEnd = useCallback(() => onDragAction(false), [onDragAction]);
+
   return (
     <div className={classes.root}>
       <div className={classes.drawer}>
@@ -665,6 +681,8 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
                 key={block.uuid}
                 selected={selectedBlock === block.uuid}
                 onSelect={handleSelectBlock}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
                 onMove={handleMoveBlock}
                 onDelete={handleDeleteBlock}
                 onDragIOStart={handleDragIOStart}
