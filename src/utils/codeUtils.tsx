@@ -1,52 +1,57 @@
-import * as prettier from "prettier/standalone";
-import parserTypeScript from "prettier/parser-typescript";
-import * as Babel from "@babel/standalone";
-import preset_env from "@babel/preset-env";
-import preset_typescript from "@babel/preset-typescript";
-import * as ts from "typescript";
-import protect from "./babel-plugin-transform-prevent-infinite-loops";
+import * as prettier from 'prettier/standalone';
+import parserTypeScript from 'prettier/parser-typescript';
+import * as Babel from '@babel/standalone';
 
-Babel.registerPreset("@babel/preset-env", preset_env);
-Babel.registerPreset("@babel/preset-typescript", preset_typescript);
+// import preset_env from '@babel/preset-env';
+// Babel.registerPreset('@babel/preset-env', preset_env);
 
+import preset_typescript from '@babel/preset-typescript';
+Babel.registerPreset('@babel/preset-typescript', preset_typescript);
+// import plugin_typescript from '@babel/plugin-transform-typescript';
+// Babel.registerPlugin('plugin_typescript', plugin_typescript());
+
+import protect from './babel-plugin-transform-prevent-infinite-loops';
 const MAX_ITERATIONS = 500001;
-Babel.registerPlugin("loopProtection", protect(MAX_ITERATIONS));
+Babel.registerPlugin('loopProtection', protect(MAX_ITERATIONS));
+
+// import * as ts from 'typescript';
 
 export function transformCode(source: string) {
   return Babel.transform(source, {
-    filename: "file.ts",
-    presets: ["@babel/preset-typescript", "@babel/preset-env"],
-    plugins: ["loopProtection"],
+    filename: 'file.ts',
+    presets: [
+      '@babel/preset-typescript',
+      // '@babel/preset-env'
+    ],
+    plugins: ['loopProtection'],
   }).code;
 }
 
 export function formatCode(code: string) {
   return prettier.format(code, {
-    parser: "typescript",
+    parser: 'typescript',
     plugins: [parserTypeScript],
   });
 }
 
 export function findFunctionName(code: string) {
   const toks = code
-    .replace(/(\r\n|\n|\r)/gm, " ")
-    .split(" ")
+    .replace(/(\r\n|\n|\r)/gm, ' ')
+    .split(' ')
     .filter(tok => tok.length > 1);
-  const fnTokI = toks.findIndex(tok => tok === "function");
+  const fnTokI = toks.findIndex(tok => tok === 'function');
   if (fnTokI === -1) return null;
   const fnNameToClean = toks[fnTokI + 1];
   if (!fnNameToClean) return null;
-  return fnNameToClean.split("(")[0];
+  return fnNameToClean.split('(')[0];
 }
 
 export function buildGlobalsBinding(globals) {
   const keys = Object.keys(globals);
-  const lets = "let " + keys.join(",");
-  const prefixed = keys.map(k => "_" + k);
+  const lets = 'let ' + keys.join(',');
+  const prefixed = keys.map(k => '_' + k);
 
-  const setter = `function INIT_ENV(${prefixed.join(",")}){${prefixed
-    .map((k, i) => `${keys[i]}=${k}`)
-    .join(";")}}`;
+  const setter = `function INIT_ENV(${prefixed.join(',')}){${prefixed.map((k, i) => `${keys[i]}=${k}`).join(';')}}`;
 
   return lets + setter;
 }
