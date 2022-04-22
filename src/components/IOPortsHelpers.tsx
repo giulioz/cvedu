@@ -31,7 +31,7 @@ export function ImageIOHelper({ value }: { value: ImageData }) {
   );
 }
 
-export function MaskIOHelper({ value }: { value: { data: boolean[]; width: number; height: number } }) {
+export function MaskIOHelper({ value }: { value?: { data: boolean[]; width: number; height: number } }) {
   const aspect = value.height / value.width;
   const height = canvasWidth * aspect;
 
@@ -39,10 +39,10 @@ export function MaskIOHelper({ value }: { value: { data: boolean[]; width: numbe
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (canvas) {
+    if (canvas && value) {
       const context = canvas.getContext('2d');
       const imgData = new ImageData(value.width, value.height);
-      value.data.forEach((d, i) => {
+      value.data?.forEach((d, i) => {
         imgData.data[i * 4] = d ? 255 : 0;
         imgData.data[i * 4 + 1] = d ? 255 : 0;
         imgData.data[i * 4 + 2] = d ? 255 : 0;

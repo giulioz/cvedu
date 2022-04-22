@@ -87,3 +87,7 @@ export function disableEvent(e: { preventDefault(): void; stopPropagation(): voi
   e.preventDefault();
   e.stopPropagation();
 }
+
+export function stopEvent(e: { stopPropagation(): void }) {
+  e.stopPropagation();
+}
