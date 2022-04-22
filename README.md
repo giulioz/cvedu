@@ -1,7 +1,5 @@
 # cvedu
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/79423ac5-bb90-47be-90fb-c99b73c5ebb5/deploy-status)](https://app.netlify.com/sites/cvedu-test/deploys)
-
 A small React web application to be used to teach principles of Computer Vision, using your webcam, Typescript and a block–based visual editor.
 
 ![screenshoot](./screenshoot.png)
@@ -38,11 +36,3 @@ The build is minified and the filenames include the hashes.<br />
 Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### Build via Docker
-
-```
-mdkir build
-docker build -t cvedu .
-docker run -it --rm -v $PWD/build:/usr/src/app/build -v $PWD/src:/usr/src/app/src cvedu
-```
