@@ -118,7 +118,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     zIndex: 1000,
   },
   selected: {
-    border: '2px solid rgba(255, 0, 0, 0.32)',
+    outline: '3px solid rgba(255, 0, 0, 0.40)',
   },
   topbar: {
     fontWeight: 600,
@@ -467,7 +467,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
   getUuid?(): string;
   onAdd(): void;
   selectedBlock: string;
-  onSelectBlock(fn: (selected: string) => string): void;
+  onSelectBlock: (selected: string) => void;
   renderIODecoration?: (port: IOPortInst<TPortInfo>) => JSX.Element;
   customParams: any;
   onDragAction: (dragging: boolean) => void;
@@ -543,12 +543,6 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
       setBlocksPos(poss => poss.map(block => (block.uuid === uuid ? { ...block, x: Math.max(0, pos.x), y: Math.max(0, pos.y) } : block)));
     },
     [setBlocksPos],
-  );
-  const handleSelectBlock = useCallback(
-    (uuid: string) => {
-      onSelectBlock(selected => (selected === uuid ? null : uuid));
-    },
-    [onSelectBlock],
   );
   const handleDeleteBlock = useCallback(
     (uuid: string) => {
@@ -680,7 +674,7 @@ export default function BlockEditor<TBlockInfo, TPortInfo>({
                 y={y}
                 key={block.uuid}
                 selected={selectedBlock === block.uuid}
-                onSelect={handleSelectBlock}
+                onSelect={onSelectBlock}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onMove={handleMoveBlock}

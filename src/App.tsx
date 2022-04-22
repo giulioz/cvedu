@@ -79,7 +79,7 @@ const useStyles = makeStyles(theme => ({
 export type BlockInfo = {
   code: string;
   solution: string;
-  solutionPassword: string;
+  solutionPassword?: string;
   fn: any;
   customInput: boolean;
 };
@@ -178,7 +178,10 @@ export default function App() {
     setCustomValues({});
   }, []);
 
-  const [selectedBlockID, setSelectedBlockID] = useState(null);
+  const [selectedBlockID, setSelectedBlockID] = useState<string | null>(null);
+  const handleSelectBlock = useCallback((uuid: string) => {
+    setSelectedBlockID(selected => (selected === uuid ? null : uuid));
+  }, []);
   const selectedBlock = blocks.find(b => b.uuid === selectedBlockID);
   const code = selectedBlock ? selectedBlock.code : '';
 
@@ -225,11 +228,18 @@ export default function App() {
   }, [selectedBlockID, templates]);
 
   const [solutionPasswordDialogOpen, setSolutionPasswordDialogOpen] = useState(false);
-  const handleOpenSolutionPasswordDialog = useCallback(() => setSolutionPasswordDialogOpen(true), [setSolutionPasswordDialogOpen]);
+  const handleOpenSolutionPasswordDialog = useCallback(() => {
+    const password = blocks.find(b => b.uuid === selectedBlockID).solutionPassword;
+    if (!password) {
+      handleSolution('', true);
+    } else {
+      setSolutionPasswordDialogOpen(true);
+    }
+  }, [setSolutionPasswordDialogOpen, blocks]);
   const handleAbortSolutionPasswordDialog = useCallback(() => setSolutionPasswordDialogOpen(false), [setSolutionPasswordDialogOpen]);
   const handleSolution = useCallback(
-    (password: string) => {
-      if (password === blocks.find(b => b.uuid === selectedBlockID).solutionPassword) {
+    (password: string, override = false) => {
+      if (override || password === blocks.find(b => b.uuid === selectedBlockID).solutionPassword) {
         setBlocks(blocks =>
           blocks.map(b => {
             if (b.uuid === selectedBlockID) {
@@ -451,7 +461,7 @@ export default function App() {
               templates={templates}
               onAdd={handleOpenAddBlockDialog}
               selectedBlock={selectedBlockID}
-              onSelectBlock={setSelectedBlockID}
+              onSelectBlock={handleSelectBlock}
               renderIODecoration={renderIODecoration}
               customParams={customRendererParams}
               onDragAction={useCallback(dragging => (dragging ? setPaused(true) : setPaused(false)), [])}

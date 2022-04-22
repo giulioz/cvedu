@@ -5,7 +5,7 @@ import { useDrag } from 'react-use-gesture';
 
 import { Block } from './BlockEditor';
 import { useDefaultInputImages } from '../utils/inputImages';
-import { disableEvent } from '../utils/utils';
+import { disableEvent, stopEvent } from '../utils/utils';
 
 const useStyles = makeStyles(theme => ({
   numberHelper: {
@@ -77,7 +77,15 @@ export const NumberInputHelper = React.memo(function NumberInputHelper<BlockInfo
   return (
     <Grid container spacing={2} alignItems='center' className={classes.numberHelper}>
       <Grid item xs>
-        <Slider value={value || 0} onChange={handleSliderChange} min={minValue} max={maxValue} step={step} onPointerMove={disableEvent} />
+        <Slider
+          value={value || 0}
+          onChange={handleSliderChange}
+          min={minValue}
+          max={maxValue}
+          step={step}
+          onPointerMove={disableEvent}
+          onPointerDown={stopEvent}
+        />
       </Grid>
       <Grid item>
         <Input
