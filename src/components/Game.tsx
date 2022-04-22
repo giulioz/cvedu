@@ -3,10 +3,9 @@ import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
 import { useSpring, config } from '@react-spring/core';
 import { a } from '@react-spring/three';
 import * as THREE from 'three';
-import { Environment, useGLTF, useTexture } from '@react-three/drei';
+import { useGLTF, useTexture } from '@react-three/drei';
 import { RGBELoader } from 'three-stdlib';
-import { DepthOfField, Noise, EffectComposer, Vignette, SSAO, ToneMapping } from '@react-three/postprocessing';
-import { Object3D } from 'three';
+import { DepthOfField, Noise, EffectComposer, Vignette, SSAO } from '@react-three/postprocessing';
 
 function useEquirectangolarEnv(url: string) {
   const env = useLoader(RGBELoader as any, url);
